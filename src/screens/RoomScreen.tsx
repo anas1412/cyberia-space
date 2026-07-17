@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, KeyboardAvoidingView, Platform, Alert, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
+import { Ellipsis } from 'lucide-react-native';
 import { colors, spacing, radius, fontSize } from '../lib/theme';
 import Header from '../components/Header';
 import Avatar from '../components/Avatar';
@@ -33,6 +34,10 @@ export default function RoomScreen({ route, navigation }: any) {
   const joinRoom = useMutation(api.rooms.join);
   const leaveRoom = useMutation(api.rooms.leave);
   const ping = useMutation(api.rooms.ping);
+  const updateRoom = useMutation(api.rooms.update);
+  const deleteRoom = useMutation(api.rooms.remove);
+  const kickUser = useMutation(api.rooms.kick);
+  const banUser = useMutation(api.rooms.ban);
 
   useEffect(() => {
     if (!userId) return;
@@ -116,6 +121,49 @@ export default function RoomScreen({ route, navigation }: any) {
     });
   });
 
+  function handleEdit() {
+    Alert.prompt('Edit room', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Name', onPress: (name) => name && updateRoom({ roomId, userId: userId as any, name }) },
+      { text: 'Topic', onPress: (topic) => updateRoom({ roomId, userId: userId as any, topic }) },
+    ]);
+  }
+
+  function handleDelete() {
+    Alert.alert('Delete room?', 'All messages will be removed.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        await deleteRoom({ roomId, userId: userId as any });
+        navigation.goBack();
+      }},
+    ]);
+  }
+
+  function showRoomMenu() {
+    Alert.alert('Room settings', undefined, [
+      { text: 'Edit name', onPress: () => Alert.prompt('New name', undefined, (name) => name && updateRoom({ roomId, userId: userId as any, name })) },
+      { text: 'Edit topic', onPress: () => Alert.prompt('New topic', undefined, (topic) => updateRoom({ roomId, userId: userId as any, topic })) },
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete room', style: 'destructive', onPress: handleDelete },
+    ]);
+  }
+
+  const isOwner = room && userId && room.ownerId === userId;
+
+  // Navigate away if room was deleted
+  useEffect(() => {
+    if (room === null) navigation.goBack();
+  }, [room]);
+
+  function handlePresenceTap(p: any) {
+    if (!isOwner) return;
+    Alert.alert(`@${p.handle}`, undefined, [
+      { text: 'Kick', onPress: () => kickUser({ roomId, ownerId: userId as any, userId: p.userId }) },
+      { text: 'Ban', style: 'destructive', onPress: () => banUser({ roomId, ownerId: userId as any, userId: p.userId }) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+
   async function handleSend() {
     if (!input.trim() || !userId) return;
     const text = input.trim(); setInput('');
@@ -124,10 +172,15 @@ export default function RoomScreen({ route, navigation }: any) {
 
   const presElements = (
     <View style={s.presRow}>
+      {isOwner && (
+        <TouchableOpacity onPress={showRoomMenu} style={{ marginRight: spacing.sm }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ellipsis size={18} color={colors.textSecondary} />
+        </TouchableOpacity>
+      )}
       {(presence as any[]).slice(0, 4).map((p: any) => (
-        <View key={p.userId} style={[s.presAvWrap, { marginLeft: -8 }]}>
+        <TouchableOpacity key={p.userId} onPress={() => handlePresenceTap(p)} style={[s.presAvWrap, { marginLeft: -8 }]}>
           <Avatar color={p.avatarColor} letter={p.handle.charAt(0)} size={26} />
-        </View>
+        </TouchableOpacity>
       ))}
       {presence.length > 4 && <Text style={s.presMore}>+{presence.length - 4}</Text>}
     </View>

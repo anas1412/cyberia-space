@@ -91,6 +91,13 @@ export const join = mutation({
       .withIndex("by_user_room", (q) => q.eq("userId", userId).eq("roomId", roomId))
       .first();
 
+    // Check if banned
+    const ban = await ctx.db
+      .query("roomBans")
+      .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
+      .first();
+    if (ban) throw new Error("You are banned from this room");
+
     if (existing) {
       await ctx.db.patch(existing._id, { lastPing: Date.now() });
     } else {
@@ -186,5 +193,145 @@ export const leave = mutation({
       }
     }
     return { success: true };
+  },
+});
+
+// Update room (owner only)
+export const update = mutation({
+  args: {
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    name: v.optional(v.string()),
+    topic: v.optional(v.string()),
+  },
+  handler: async (ctx, { roomId, userId, name, topic }) => {
+    const room = await ctx.db.get(roomId);
+    if (!room) throw new Error("Room not found");
+    if (room.ownerId !== userId) throw new Error("Not the owner");
+    const patch: any = {};
+    if (name) patch.name = name.slice(0, 40);
+    if (topic !== undefined) patch.topic = topic.slice(0, 100) || undefined;
+    await ctx.db.patch(roomId, patch);
+    return { success: true };
+  },
+});
+
+// Delete room (owner only)
+export const remove = mutation({
+  args: { roomId: v.id("rooms"), userId: v.id("users") },
+  handler: async (ctx, { roomId, userId }) => {
+    const room = await ctx.db.get(roomId);
+    if (!room) throw new Error("Room not found");
+    if (room.ownerId !== userId) throw new Error("Not the owner");
+
+    // Clear owner's privateRoomId if private
+    if (room.type === "private") {
+      const owner = await ctx.db.get(userId);
+      if (owner?.privateRoomId === roomId) {
+        await ctx.db.patch(userId, { privateRoomId: undefined });
+      }
+    }
+
+    // Delete all messages
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_room_time", (q) => q.eq("roomId", roomId))
+      .take(500);
+    for (const m of messages) await ctx.db.delete(m._id);
+
+    // Delete presence
+    const presence = await ctx.db
+      .query("presence")
+      .withIndex("by_room", (q) => q.eq("roomId", roomId))
+      .collect();
+    for (const p of presence) await ctx.db.delete(p._id);
+
+    // Delete bans
+    const bans = await ctx.db
+      .query("roomBans")
+      .withIndex("by_room", (q) => q.eq("roomId", roomId))
+      .collect();
+    for (const b of bans) await ctx.db.delete(b._id);
+
+    // Delete room
+    await ctx.db.delete(roomId);
+    return { success: true };
+  },
+});
+
+// Kick a user from the room (owner only)
+export const kick = mutation({
+  args: { roomId: v.id("rooms"), ownerId: v.id("users"), userId: v.id("users") },
+  handler: async (ctx, { roomId, ownerId, userId }) => {
+    const room = await ctx.db.get(roomId);
+    if (!room || room.ownerId !== ownerId) throw new Error("Not the owner");
+    if (userId === ownerId) throw new Error("Cannot kick yourself");
+    const p = await ctx.db
+      .query("presence")
+      .withIndex("by_user_room", (q) => q.eq("userId", userId).eq("roomId", roomId))
+      .first();
+    if (p) {
+      await ctx.db.delete(p._id);
+      if (room.memberCount > 0) await ctx.db.patch(roomId, { memberCount: room.memberCount - 1 });
+    }
+    return { success: true };
+  },
+});
+
+// Ban a user from the room (owner only)
+export const ban = mutation({
+  args: { roomId: v.id("rooms"), ownerId: v.id("users"), userId: v.id("users") },
+  handler: async (ctx, { roomId, ownerId, userId }) => {
+    const room = await ctx.db.get(roomId);
+    if (!room || room.ownerId !== ownerId) throw new Error("Not the owner");
+    if (userId === ownerId) throw new Error("Cannot ban yourself");
+    const existing = await ctx.db
+      .query("roomBans")
+      .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
+      .first();
+    if (!existing) {
+      await ctx.db.insert("roomBans", { roomId, userId, bannedBy: ownerId, bannedAt: Date.now() });
+    }
+    // Also kick them
+    const p = await ctx.db
+      .query("presence")
+      .withIndex("by_user_room", (q) => q.eq("userId", userId).eq("roomId", roomId))
+      .first();
+    if (p) {
+      await ctx.db.delete(p._id);
+      if (room.memberCount > 0) await ctx.db.patch(roomId, { memberCount: room.memberCount - 1 });
+    }
+    return { success: true };
+  },
+});
+
+// Unban a user
+export const unban = mutation({
+  args: { roomId: v.id("rooms"), ownerId: v.id("users"), userId: v.id("users") },
+  handler: async (ctx, { roomId, ownerId, userId }) => {
+    const room = await ctx.db.get(roomId);
+    if (!room || room.ownerId !== ownerId) throw new Error("Not the owner");
+    const ban = await ctx.db
+      .query("roomBans")
+      .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
+      .first();
+    if (ban) await ctx.db.delete(ban._id);
+    return { success: true };
+  },
+});
+
+// List banned users
+export const listBans = query({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, { roomId }) => {
+    const bans = await ctx.db
+      .query("roomBans")
+      .withIndex("by_room", (q) => q.eq("roomId", roomId))
+      .collect();
+    const users = await Promise.all(bans.map(async (b) => {
+      const u = await ctx.db.get(b.userId);
+      return u ? { _id: b._id, userId: b.userId, handle: u.handle, bannedAt: b.bannedAt } : null;
+    }));
+    return users.filter(Boolean);
   },
 });

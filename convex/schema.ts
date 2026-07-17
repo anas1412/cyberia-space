@@ -106,4 +106,13 @@ export default defineSchema({
     .index("by_user_unread", ["userId", "read"])
     .index("by_user_time", ["userId", "timestamp"])
     .index("by_expires", ["expiresAt"]),
+
+  roomBans: defineTable({
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    bannedBy: v.id("users"),
+    bannedAt: v.number(),
+  })
+    .index("by_room", ["roomId"])
+    .index("by_room_user", ["roomId", "userId"]),
 });
