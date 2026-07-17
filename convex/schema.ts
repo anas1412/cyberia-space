@@ -78,9 +78,12 @@ export default defineSchema({
     avatarColor: v.string(),
     text: v.string(),
     timestamp: v.number(),
+    expiresAt: v.number(),
     readBy: v.array(v.id("users")),
     mentions: v.array(v.string()),
-  }).index("by_conversation_time", ["conversationId", "timestamp"]),
+  })
+    .index("by_conversation_time", ["conversationId", "timestamp"])
+    .index("by_expires", ["expiresAt"]),
 
   notifications: defineTable({
     userId: v.id("users"),

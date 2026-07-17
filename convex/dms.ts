@@ -1,6 +1,8 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
+
+const TTL_MS = 24 * 60 * 60 * 1000;
 
 function sortIds(a: Id<"users">, b: Id<"users">): [Id<"users">, Id<"users">] {
   return [a, b].sort() as [Id<"users">, Id<"users">];
@@ -70,6 +72,7 @@ export const subscribeMessages = query({
       .withIndex("by_conversation_time", (q) =>
         q.eq("conversationId", conversationId)
       )
+      .filter((q) => q.gt(q.field("expiresAt"), Date.now()))
       .order("asc")
       .take(300);
   },
@@ -101,6 +104,7 @@ export const send = mutation({
       avatarColor: user.avatarColor,
       text: text.trim(),
       timestamp: now,
+      expiresAt: now + TTL_MS,
       readBy: [userId],
       mentions,
     });
@@ -145,3 +149,16 @@ export const markRead = mutation({
     }
   },
 });
+
+// Cleanup expired DMs (called by cron)
+export const cleanupExpired = internalMutation({
+  handler: async (ctx) => {
+    const expired = await ctx.db
+      .query("directMessages")
+      .withIndex("by_expires", (q) => q.lt("expiresAt", Date.now()))
+      .take(500);
+    for (const msg of expired) await ctx.db.delete(msg._id);
+    return { deleted: expired.length };
+  },
+});
+
