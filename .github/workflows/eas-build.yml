@@ -1,0 +1,36 @@
+name: EAS Build (Native)
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build'
+        required: true
+        default: 'all'
+        type: choice
+        options: [all, ios, android]
+
+jobs:
+  build:
+    name: EAS Native Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+        working-directory: apps/mobile
+      - name: Build
+        run: eas build --platform ${{ github.event.inputs.platform || 'all' }} --non-interactive
+        working-directory: apps/mobile
+        env:
+          EXPO_PUBLIC_CONVEX_URL: ${{ secrets.CONVEX_URL }}

@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "CyberiaSocial",
+    "slug": "cyberia-social",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#050508",
+    "icon": "./assets/icon.png",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.cyberia.social"
+    },
+    "android": {
+      "package": "com.cyberia.social",
+      "adaptiveIcon": {
+        "backgroundColor": "#050508",
+        "foregroundImage": "./assets/icon.png"
+      }
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#1A6BFF"
+        }
+      ]
+    ],
+    "updates": {
+      "url": "https://u.expo.dev/YOUR_PROJECT_ID"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    }
+  }
+}
