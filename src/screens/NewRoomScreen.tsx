@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation } from 'convex/react';
+import { Zap, Clock, Home, Users } from 'lucide-react-native';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
@@ -78,14 +79,14 @@ export default function NewRoomScreen({ navigation }: any) {
 
           <View style={s.info}>
             {[
-              { icon: '⚡', text: 'No message history when someone joins' },
-              { icon: '🕒', text: 'All messages dissolve after 24 hours' },
+              { Icon: Zap, text: 'No message history when someone joins' },
+              { Icon: Clock, text: 'All messages dissolve after 24 hours' },
               isPrivate
-                ? { icon: '🏠', text: 'Your room stays open even when you\'re away' }
-                : { icon: '👥', text: 'Anyone can discover and join' },
+                ? { Icon: Home, text: 'Your room stays open even when you\'re away' }
+                : { Icon: Users, text: 'Anyone can discover and join' },
             ].map((item, i) => (
               <View key={i} style={s.infoRow}>
-                <Text style={s.infoIcon}>{item.icon}</Text>
+                <item.Icon size={16} color={colors.textSecondary} strokeWidth={2} />
                 <Text style={s.infoText}>{item.text}</Text>
               </View>
             ))}
@@ -128,7 +129,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.lg,
     borderWidth: 1, borderColor: colors.border,
   },
-  infoIcon: { fontSize: 16, width: 22, textAlign: 'center', flexShrink: 0 },
+  infoIcon: { width: 22, alignItems: 'center', flexShrink: 0 },
   infoText: { fontSize: fontSize.small, color: colors.textSecondary, flex: 1, lineHeight: 19 },
   error: { color: colors.error, fontSize: fontSize.small, textAlign: 'center' },
 });
