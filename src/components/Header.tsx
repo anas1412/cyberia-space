@@ -55,6 +55,7 @@ const s = StyleSheet.create({
   side: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     minWidth: 44,
+    height: 36,
   },
   sideRight: {
     justifyContent: 'flex-end',

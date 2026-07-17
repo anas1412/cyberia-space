@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Star } from 'lucide-react-native';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
@@ -14,6 +15,12 @@ export default function RoomsListScreen({ navigation }: any) {
   const { user } = useAuth();
   const rooms = useQuery(api.rooms.listPublic) ?? [];
 
+  const myRoom = rooms.find((r: any) => r.ownerHandle === user?.handle);
+  const otherRooms = rooms.filter((r: any) => r.ownerHandle !== user?.handle);
+
+  // Merge: my room first, then others
+  const sorted = myRoom ? [myRoom, ...otherRooms] : otherRooms;
+
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <Header
@@ -23,44 +30,40 @@ export default function RoomsListScreen({ navigation }: any) {
       />
 
       <FlatList
-        data={rooms}
+        data={sorted}
         keyExtractor={(item: any) => item._id}
         contentContainerStyle={s.list}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={s.listHead}>
-            {user?.privateRoomId ? (
-              <TouchableOpacity style={s.privateCard}
-                onPress={() => navigation.navigate('Room', { roomId: user.privateRoomId, name: 'My Room' })}
-                activeOpacity={0.8}>
-                <View style={s.privateLeft}>
-                  <View style={s.privateIcon}><Text style={s.privateIconText}>&#9672;</Text></View>
-                  <View>
-                    <Text style={s.privateTitle}>My Room</Text>
-                    <Text style={s.privateSub}>Tap to join</Text>
-                  </View>
-                </View>
-                <Text style={s.arrow}>&#8594;</Text>
-              </TouchableOpacity>
-            ) : null}
-            <Text style={sectionLabel}>All Rooms</Text>
+            {myRoom && <Text style={sectionLabel}>My Room</Text>}
           </View>
         }
-        renderItem={({ item }: any) => (
-          <TouchableOpacity style={[card, s.roomCard]}
-            onPress={() => navigation.navigate('Room', { roomId: item._id, name: item.name })}
-            activeOpacity={0.8}>
-            <DiceBearAvatar seed={item.name} style="glass" size={40} bgColor={item.ownerColor} />
-            <View style={s.roomInfo}>
-              <Text style={s.roomName}>{item.name}</Text>
-              {item.topic ? <Text style={s.roomTopic} numberOfLines={1}>{item.topic}</Text> : null}
-              <Text style={s.roomOwner}>by @{item.ownerHandle}</Text>
+        renderItem={({ item, index }: any) => {
+          const isMine = item.ownerHandle === user?.handle;
+          const showAllLabel = myRoom && index === 1;
+          return (
+            <View key={item._id}>
+              {showAllLabel && <Text style={[sectionLabel, { marginTop: spacing.lg, marginBottom: spacing.md }]}>All Rooms</Text>}
+            <TouchableOpacity style={[card, s.roomCard]}
+              onPress={() => navigation.navigate('Room', { roomId: item._id, name: item.name })}
+              activeOpacity={0.8}>
+              <DiceBearAvatar seed={item.name} style="glass" size={40} bgColor={item.ownerColor} />
+              <View style={s.roomInfo}>
+                <View style={s.nameRow}>
+                  <Text style={s.roomName}>{item.name}</Text>
+                  {isMine && <Star size={12} color={colors.accent} strokeWidth={2.5} fill={colors.accent} />}
+                </View>
+                {item.topic ? <Text style={s.roomTopic} numberOfLines={1}>{item.topic}</Text> : null}
+                <Text style={s.roomOwner}>by @{item.ownerHandle}</Text>
+              </View>
+              <View style={s.roomMeta}>
+                {item.memberCount > 0 && <Text style={s.memberCount}>{item.memberCount} online</Text>}
+              </View>
+            </TouchableOpacity>
             </View>
-            <View style={s.roomMeta}>
-              {item.memberCount > 0 && <Text style={s.memberCount}>{item.memberCount} online</Text>}
-            </View>
-          </TouchableOpacity>
-        )}
+          );
+        }}
         ListEmptyComponent={
           <EmptyState
             title="No rooms yet"
@@ -79,31 +82,11 @@ const s = StyleSheet.create({
   list: { padding: spacing.lg, gap: spacing.sm, paddingBottom: spacing.xxxl },
   listHead: { gap: spacing.lg, marginBottom: spacing.sm },
 
-  privateCard: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: colors.accentBg, borderRadius: radius.lg, padding: spacing.lg,
-    borderWidth: 1, borderColor: 'rgba(232,168,64,0.2)',
-  },
-  privateLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  privateIcon: {
-    width: 40, height: 40, borderRadius: radius.sm,
-    backgroundColor: 'rgba(232,168,64,0.2)', alignItems: 'center', justifyContent: 'center',
-  },
-  privateIconText: { fontSize: 20, color: colors.accent },
-  privateTitle: { fontSize: fontSize.title, fontWeight: fontWeight.semibold, color: colors.text },
-  privateSub: { fontSize: fontSize.small, color: colors.textSecondary, marginTop: 2 },
-  arrow: { fontSize: 18, color: colors.textMuted },
-
   roomCard: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,
   },
-  roomIcon: {
-    width: 40, height: 40, borderRadius: radius.sm,
-    backgroundColor: colors.elevated, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: colors.border,
-  },
-  roomHash: { fontSize: 18, color: colors.accent, fontWeight: fontWeight.bold },
   roomInfo: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   roomName: { fontSize: fontSize.title, fontWeight: fontWeight.semibold, color: colors.text },
   roomTopic: { fontSize: fontSize.small, color: colors.textSecondary, marginTop: 2 },
   roomOwner: { fontSize: fontSize.caption, color: colors.textMuted, marginTop: 2 },

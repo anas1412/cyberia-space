@@ -32,11 +32,9 @@ export default function ProfileScreen({ navigation }: any) {
     setSaving(false);
   }
 
-  function confirmLogout() {
-    Alert.alert('Sign out', 'You can sign back in anytime with your phone number.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign out', style: 'destructive', onPress: async () => { await logout(); navigation.getParent()?.replace('Auth'); } },
-    ]);
+  async function confirmLogout() {
+    await logout();
+    navigation.getParent()?.reset({ index: 0, routes: [{ name: 'Auth' }] });
   }
 
   return (
