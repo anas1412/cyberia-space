@@ -123,6 +123,7 @@ export const join = mutation({
             text: `@${user.handle} joined`,
             read: false,
             timestamp: now,
+            expiresAt: now + 90 * 24 * 60 * 60 * 1000,
           });
         }
       }
@@ -173,6 +174,7 @@ export const leave = mutation({
             text: `@${user.handle} left`,
             read: false,
             timestamp: now,
+            expiresAt: now + 90 * 24 * 60 * 60 * 1000,
           });
         }
       }

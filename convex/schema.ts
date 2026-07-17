@@ -101,7 +101,9 @@ export default defineSchema({
     text: v.string(),
     read: v.boolean(),
     timestamp: v.number(),
+    expiresAt: v.number(),
   })
     .index("by_user_unread", ["userId", "read"])
-    .index("by_user_time", ["userId", "timestamp"]),
+    .index("by_user_time", ["userId", "timestamp"])
+    .index("by_expires", ["expiresAt"]),
 });

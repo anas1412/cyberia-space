@@ -126,6 +126,7 @@ export const send = mutation({
         text: text.slice(0, 80),
         read: false,
         timestamp: now,
+        expiresAt: now + 90 * 24 * 60 * 60 * 1000,
       });
     }
   },

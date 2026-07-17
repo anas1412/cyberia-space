@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const list = query({
@@ -39,5 +39,17 @@ export const markRead = mutation({
   args: { notificationId: v.id("notifications") },
   handler: async (ctx, { notificationId }) => {
     await ctx.db.patch(notificationId, { read: true });
+  },
+});
+
+// Cleanup expired notifications (called by cron)
+export const cleanupExpired = internalMutation({
+  handler: async (ctx) => {
+    const expired = await ctx.db
+      .query("notifications")
+      .withIndex("by_expires", (q) => q.lt("expiresAt", Date.now()))
+      .take(500);
+    for (const n of expired) await ctx.db.delete(n._id);
+    return { deleted: expired.length };
   },
 });
