@@ -85,7 +85,7 @@ export default function RoomSettingsSheet({ visible, onClose, roomId, userId, ro
               return (
                 <View key={p.userId} style={s.memberRow}>
                   <View style={s.memberInfo}>
-                    <DiceBearAvatar seed={p.handle} style="croodles-neutral" size={32} color={p.avatarColor} />
+                    <DiceBearAvatar seed={p.handle} style="croodles-neutral" color={p.avatarColor} />
                     <View>
                       <Text style={s.memberName}>@{p.handle}{isOwner ? ' (you)' : ''}</Text>
                     </View>

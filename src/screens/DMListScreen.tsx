@@ -39,7 +39,7 @@ export default function DMListScreen({ navigation }: any) {
             onPress={() => navigation.navigate('DM', { conversationId: item._id })}
             activeOpacity={0.8}>
             <View>
-              <DiceBearAvatar seed={item.other?.handle ?? '?'} style="croodles-neutral" size={48} color={item.other?.avatarColor} />
+              <DiceBearAvatar seed={item.other?.handle ?? '?'} style="croodles-neutral" size={48} bgColor={item.other?.avatarColor} />
               {item.unreadCount > 0 && <View style={s.unreadDot} />}
             </View>
             <View style={s.info}>

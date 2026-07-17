@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Phone, Calendar, Hash, ChevronRight, LogOut } from 'lucide-react-native';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
-import { colors, spacing, radius, fontSize, fontWeight, avatarColors } from '../lib/theme';
-import { card as cardStyle } from '../lib/sharedStyles';
+import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import Header from '../components/Header';
-import Input from '../components/Input';
-import Button from '../components/Button';
 import DiceBearAvatar from '../components/DiceBearAvatar';
+import ColorPicker from '../components/ColorPicker';
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, userId, logout } = useAuth();
   const [handle, setHandle] = useState(user?.handle ?? '');
-  const [color, setColor] = useState(user?.avatarColor ?? avatarColors[0]);
+  const [color, setColor] = useState(user?.avatarColor ?? '#E8A840');
+  const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -22,18 +22,18 @@ export default function ProfileScreen({ navigation }: any) {
   const updateProfile = useMutation(api.users.updateProfile);
 
   async function handleSave() {
-    if (!userId) return;
+    if (!userId || !handle.trim()) return;
     setSaving(true); setError(''); setSaved(false);
     try {
-      const res = await updateProfile({ userId: userId as any, handle, avatarColor: color });
+      const res = await updateProfile({ userId: userId as any, handle: handle.trim(), avatarColor: color });
       if (res && 'error' in res && res.error) setError(res.error);
-      else setSaved(true);
+      else { setSaved(true); setEditing(false); }
     } catch (e: any) { setError(e.message); }
     setSaving(false);
   }
 
   function confirmLogout() {
-    Alert.alert('Sign out?', 'You can sign back in anytime with your phone number.', [
+    Alert.alert('Sign out', 'You can sign back in anytime with your phone number.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign out', style: 'destructive', onPress: async () => { await logout(); navigation.replace('Auth'); } },
     ]);
@@ -44,64 +44,84 @@ export default function ProfileScreen({ navigation }: any) {
       <Header title="Profile" rightLabel="Save" onRightPress={handleSave} />
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+
+        {/* ── Hero ── */}
         <View style={s.hero}>
-          <DiceBearAvatar seed={user?.handle ?? '?'} style="croodles-neutral" size={88} color={color} />
-          <Text style={s.handleText}>@{handle || user?.handle}</Text>
-          <View style={s.onlineBadge}>
-            <View style={s.onlineDot} />
-            <Text style={s.onlineText}>Active now</Text>
+          <View style={{ borderRadius: 24, borderWidth: 3, borderColor: colors.borderStrong }}>
+            <DiceBearAvatar seed={user?.handle ?? '?'} style="croodles-neutral" size={120} bgColor={user?.avatarColor} />
+          </View>
+
+          {editing ? (
+            <View style={s.editRow}>
+              <Text style={s.editAt}>@</Text>
+              <TextInput
+                style={s.editInput}
+                value={handle}
+                onChangeText={setHandle}
+                placeholder="handle"
+                placeholderTextColor={colors.textMuted}
+                maxLength={20}
+                autoCapitalize="none"
+                autoFocus
+                onSubmitEditing={handleSave}
+              />
+            </View>
+          ) : (
+            <TouchableOpacity onPress={() => setEditing(true)} activeOpacity={0.7}>
+              <Text style={s.handle}>@{handle || user?.handle}</Text>
+            </TouchableOpacity>
+          )}
+
+          <ColorPicker value={color} onChange={setColor} />
+          {error ? <Text style={s.error}>{error}</Text> : null}
+          {saved ? <Text style={s.success}>Profile updated</Text> : null}
+        </View>
+
+        {/* ── Info card ── */}
+        <View style={s.card}>
+          <View style={s.infoRow}>
+            <Phone size={14} color={colors.textMuted} strokeWidth={2} />
+            <Text style={s.infoText}>{user?.phone ? user.phone.slice(0, 6) + '···' + user.phone.slice(-2) : '—'}</Text>
+          </View>
+          <View style={s.divider} />
+          <View style={s.infoRow}>
+            <Calendar size={14} color={colors.textMuted} strokeWidth={2} />
+            <Text style={s.infoText}>
+              {user?.createdAt
+                ? `Joined ${new Date(user.createdAt).toLocaleDateString([], { month: 'long', year: 'numeric' })}`
+                : '—'}
+            </Text>
           </View>
         </View>
 
-        <View style={s.statsRow}>
-          <View style={[cardStyle, s.stat]}>
-            <Text style={s.statVal}>{user?.phone ? user.phone.slice(0, 4) + '···' : '—'}</Text>
-            <Text style={s.statLabel}>Phone</Text>
-          </View>
-          <View style={[cardStyle, s.stat]}>
-            <Text style={s.statVal}>{user?.createdAt
-              ? new Date(user.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })
-              : '—'}</Text>
-            <Text style={s.statLabel}>Joined</Text>
-          </View>
-          <TouchableOpacity style={[cardStyle, s.stat]} onPress={() => user?.privateRoomId
+        {/* ── My Room ── */}
+        <TouchableOpacity
+          style={s.card}
+          onPress={() => user?.privateRoomId
             ? navigation.navigate('Room', { roomId: user.privateRoomId, name: 'My Room' })
             : navigation.navigate('NewRoom')
-          }>
-            <Text style={[s.statVal, { color: colors.accent }]}>
-              {user?.privateRoomId ? 'View' : 'Create'}
+          }
+          activeOpacity={0.7}
+        >
+          <View style={s.roomRow}>
+            <Hash size={18} color={colors.accent} strokeWidth={2} />
+            <Text style={s.roomText}>
+              {user?.privateRoomId ? 'My Room' : 'Create your room'}
             </Text>
-            <Text style={s.statLabel}>My Room</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Display name</Text>
-          <Input prefix="@" value={handle} onChangeText={setHandle}
-            placeholder="handle" maxLength={20} autoCapitalize="none" />
-        </View>
-
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Color</Text>
-          <View style={s.colorRow}>
-            {avatarColors.map(c => (
-              <TouchableOpacity key={c} onPress={() => setColor(c)} activeOpacity={0.8}
-                style={[s.colorDot, { backgroundColor: c }, color === c && s.colorDotSelected]} />
-            ))}
+            <ChevronRight size={14} color={colors.textMuted} strokeWidth={2} />
           </View>
-        </View>
+          {user?.privateRoomId ? (
+            <Text style={s.roomSub}>Your permanent space — open to all</Text>
+          ) : (
+            <Text style={s.roomSub}>One per account, stays open when you're away</Text>
+          )}
+        </TouchableOpacity>
 
-        {error ? <Text style={s.error}>{error}</Text> : null}
-        {saved ? <Text style={s.success}>Profile updated</Text> : null}
-
-        <Button
-          label="Save changes"
-          onPress={handleSave}
-          loading={saving}
-          loadingLabel="Saving…"
-        />
-
-        <Button variant="danger" label="Sign out" onPress={confirmLogout} />
+        {/* ── Sign out ── */}
+        <TouchableOpacity style={s.signOut} onPress={confirmLogout} activeOpacity={0.7}>
+          <LogOut size={16} color={colors.error} strokeWidth={2} />
+          <Text style={s.signOutText}>Sign out</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -111,29 +131,61 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   scroll: { padding: spacing.xl, gap: spacing.xl, paddingBottom: spacing.xxxl * 2 },
 
-  hero: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing.lg },
-  handleText: { fontSize: fontSize.header, fontWeight: fontWeight.bold, color: colors.text },
-  onlineBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: 'rgba(78,201,124,0.1)', borderRadius: radius.full,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
-    borderWidth: 1, borderColor: 'rgba(78,201,124,0.2)',
+  // Hero
+  hero: { alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.xxl },
+  handle: { fontSize: fontSize.hero, fontWeight: fontWeight.bold, color: colors.text },
+  editRow: {
+    flexDirection: 'row', alignItems: 'center', alignSelf: 'center',
+    backgroundColor: colors.elevated, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.borderStrong,
+    paddingHorizontal: spacing.md, height: 44,
   },
-  onlineDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: colors.online },
-  onlineText: { fontSize: fontSize.caption, fontWeight: fontWeight.semibold, color: colors.online },
+  editAt: { color: colors.textSecondary, fontSize: fontSize.body, fontWeight: fontWeight.medium },
+  editInput: {
+    color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.semibold,
+    paddingVertical: 0, paddingHorizontal: spacing.xs, minWidth: 100,
+  },
 
-  statsRow: { flexDirection: 'row', gap: spacing.sm },
-  stat: { flex: 1, alignItems: 'center' },
-  statVal: { fontSize: fontSize.title, fontWeight: fontWeight.bold, color: colors.text },
-  statLabel: { fontSize: fontSize.caption, color: colors.textSecondary, marginTop: 2 },
+  // Card
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  infoText: { fontSize: fontSize.body, color: colors.textSecondary },
+  divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.xs },
 
-  section: { gap: spacing.sm },
-  sectionTitle: { fontSize: fontSize.small, fontWeight: fontWeight.semibold, color: colors.textSecondary },
+  // Room
+  roomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  roomText: { flex: 1, fontSize: fontSize.title, fontWeight: fontWeight.semibold, color: colors.text },
+  roomSub: { fontSize: fontSize.small, color: colors.textSecondary, marginTop: spacing.sm, paddingLeft: 26 },
 
-  colorRow: { flexDirection: 'row', gap: spacing.md },
-  colorDot: { width: 40, height: 40, borderRadius: 20, borderWidth: 3, borderColor: 'transparent' },
-  colorDotSelected: { borderColor: colors.text, transform: [{ scale: 1.12 }] },
-
+  // Messages
   error: { color: colors.error, fontSize: fontSize.small, textAlign: 'center' },
   success: { color: colors.online, fontSize: fontSize.small, textAlign: 'center' },
+
+  // Sign out
+  signOut: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.lg,
+    marginTop: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  signOutText: { color: colors.error, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
 });

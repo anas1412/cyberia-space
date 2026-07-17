@@ -4,10 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
-import { colors, spacing, radius, fontSize, fontWeight, avatarColors } from '../lib/theme';
+import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import DiceBearAvatar from '../components/DiceBearAvatar';
+import ColorPicker from '../components/ColorPicker';
 
 type Step = 'phone' | 'otp' | 'handle';
 
@@ -17,7 +18,7 @@ export default function AuthScreen({ navigation }: any) {
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [handle, setHandle] = useState('');
-  const [color, setColor] = useState(avatarColors[0]);
+  const [color, setColor] = useState('#E8A840');
   const [userId, setUserId] = useState('');
   const [token, setToken] = useState('');
   const [error, setError] = useState('');
@@ -122,15 +123,10 @@ export default function AuthScreen({ navigation }: any) {
               <Input value={handle} onChangeText={setHandle}
                 placeholder="Your display name" autoFocus maxLength={20} autoCapitalize="none"
                 onSubmitEditing={() => handle.length >= 2 && handleSetHandle()} />
-              <View style={s.colorRow}>
-                {avatarColors.map(c => (
-                  <TouchableOpacity key={c} onPress={() => setColor(c)} activeOpacity={0.8}
-                    style={[s.colorDot, { backgroundColor: c }, color === c && s.colorDotSelected]} />
-                ))}
-              </View>
+              <ColorPicker value={color} onChange={setColor} />
               {handle.length > 0 && (
                 <View style={s.preview}>
-                  <DiceBearAvatar seed={handle || 'user'} style="croodles-neutral" size={40} color={color} />
+                  <DiceBearAvatar seed={handle || 'user'} style="croodles-neutral" size={40} bgColor={color} />
                   <Text style={s.previewHandle}>@{handle}</Text>
                 </View>
               )}
@@ -165,10 +161,6 @@ const s = StyleSheet.create({
   },
   otpBoxFilled: { borderColor: colors.accent },
   otpDigit: { fontSize: fontSize.header, fontWeight: fontWeight.bold, color: colors.text },
-
-  colorRow: { flexDirection: 'row', gap: spacing.md, justifyContent: 'center' },
-  colorDot: { width: 36, height: 36, borderRadius: 18, borderWidth: 3, borderColor: 'transparent' },
-  colorDotSelected: { borderColor: colors.text, transform: [{ scale: 1.15 }] },
 
   preview: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,

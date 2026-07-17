@@ -50,7 +50,7 @@ export default function NewDMScreen({ navigation }: any) {
             <View style={card}>
               {targetUser ? (
                 <View style={s.userRow}>
-                  <DiceBearAvatar seed={targetUser.handle} style="croodles-neutral" size={44} color={targetUser.avatarColor} />
+                  <DiceBearAvatar seed={targetUser.handle} style="croodles-neutral" size={44} bgColor={targetUser.avatarColor} />
                   <View>
                     <Text style={s.userHandle}>@{targetUser.handle}</Text>
                     <Text style={s.userFound}>User found</Text>

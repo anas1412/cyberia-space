@@ -146,7 +146,7 @@ export default function RoomScreen({ route, navigation }: any) {
     <View style={s.presRow}>
       {(presence as any[]).slice(0, 4).map((p: any) => (
         <TouchableOpacity key={p.userId} onPress={() => handlePresenceTap(p)} style={[s.presAvWrap, { marginLeft: -8 }]}>
-          <DiceBearAvatar seed={p.handle} style="croodles-neutral" size={26} color={p.avatarColor} />
+          <DiceBearAvatar seed={p.handle} style="croodles-neutral" size={26} bgColor={p.avatarColor} />
         </TouchableOpacity>
       ))}
       {presence.length > 4 && <Text style={s.presMore}>+{presence.length - 4}</Text>}

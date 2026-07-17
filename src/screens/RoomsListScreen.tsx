@@ -46,7 +46,7 @@ export default function RoomsListScreen({ navigation }: any) {
           <TouchableOpacity style={[card, s.roomCard]}
             onPress={() => navigation.navigate('Room', { roomId: item._id, name: item.name })}
             activeOpacity={0.8}>
-            <DiceBearAvatar seed={item.name} style="glass" size={40} color={item.ownerColor} />
+            <DiceBearAvatar seed={item.name} style="glass" size={40} bgColor={item.ownerColor} />
             <View style={s.roomInfo}>
               <Text style={s.roomName}>{item.name}</Text>
               {item.topic ? <Text style={s.roomTopic} numberOfLines={1}>{item.topic}</Text> : null}
