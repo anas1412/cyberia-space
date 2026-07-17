@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import { inputPill } from '../lib/sharedStyles';
 import Header from '../components/Header';
-import Avatar from '../components/Avatar';
+import DiceBearAvatar from '../components/DiceBearAvatar';
 import MessageBubble from '../components/MessageBubble';
 import EmptyState from '../components/EmptyState';
 import ChatInput from '../components/ChatInput';
@@ -57,7 +57,7 @@ export default function DMScreen({ route, navigation }: any) {
         title={`@${other?.handle ?? '…'}`}
         onBack={() => navigation.goBack()}
         leftContent={
-          other ? <Avatar color={other.avatarColor} letter={other.handle.charAt(0)} size={36} /> : undefined
+          other ? <DiceBearAvatar seed={other.handle} style="croodles-neutral" size={36} color={other.avatarColor} /> : undefined
         }
       />
 

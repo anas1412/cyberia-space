@@ -4,13 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
-import { Ellipsis } from 'lucide-react-native';
 import { colors, spacing, radius, fontSize } from '../lib/theme';
 import Header from '../components/Header';
-import Avatar from '../components/Avatar';
+import DiceBearAvatar from '../components/DiceBearAvatar';
 import MessageBubble from '../components/MessageBubble';
 import SystemMessage from '../components/SystemMessage';
 import ChatInput from '../components/ChatInput';
+import RoomSettingsSheet from '../components/RoomSettingsSheet';
 
 function fmtTime(ts: number) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -22,6 +22,7 @@ export default function RoomScreen({ route, navigation }: any) {
   const [input, setInput] = useState('');
   const [joinTime] = useState(() => Date.now());
   const [events, setEvents] = useState<any[]>([]);
+  const [sheetVisible, setSheetVisible] = useState(false);
   const prevPresence = useRef<Set<string>>(new Set());
   const hasJoined = useRef(false);
   const handleCache = useRef<Map<string, string>>(new Map());
@@ -34,8 +35,6 @@ export default function RoomScreen({ route, navigation }: any) {
   const joinRoom = useMutation(api.rooms.join);
   const leaveRoom = useMutation(api.rooms.leave);
   const ping = useMutation(api.rooms.ping);
-  const updateRoom = useMutation(api.rooms.update);
-  const deleteRoom = useMutation(api.rooms.remove);
   const kickUser = useMutation(api.rooms.kick);
   const banUser = useMutation(api.rooms.ban);
 
@@ -121,33 +120,6 @@ export default function RoomScreen({ route, navigation }: any) {
     });
   });
 
-  function handleEdit() {
-    Alert.prompt('Edit room', undefined, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Name', onPress: (name) => name && updateRoom({ roomId, userId: userId as any, name }) },
-      { text: 'Topic', onPress: (topic) => updateRoom({ roomId, userId: userId as any, topic }) },
-    ]);
-  }
-
-  function handleDelete() {
-    Alert.alert('Delete room?', 'All messages will be removed.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
-        await deleteRoom({ roomId, userId: userId as any });
-        navigation.goBack();
-      }},
-    ]);
-  }
-
-  function showRoomMenu() {
-    Alert.alert('Room settings', undefined, [
-      { text: 'Edit name', onPress: () => Alert.prompt('New name', undefined, (name) => name && updateRoom({ roomId, userId: userId as any, name })) },
-      { text: 'Edit topic', onPress: () => Alert.prompt('New topic', undefined, (topic) => updateRoom({ roomId, userId: userId as any, topic })) },
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete room', style: 'destructive', onPress: handleDelete },
-    ]);
-  }
-
   const isOwner = room && userId && room.ownerId === userId;
 
   // Navigate away if room was deleted
@@ -172,14 +144,9 @@ export default function RoomScreen({ route, navigation }: any) {
 
   const presElements = (
     <View style={s.presRow}>
-      {isOwner && (
-        <TouchableOpacity onPress={showRoomMenu} style={{ marginRight: spacing.sm }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Ellipsis size={18} color={colors.textSecondary} />
-        </TouchableOpacity>
-      )}
       {(presence as any[]).slice(0, 4).map((p: any) => (
         <TouchableOpacity key={p.userId} onPress={() => handlePresenceTap(p)} style={[s.presAvWrap, { marginLeft: -8 }]}>
-          <Avatar color={p.avatarColor} letter={p.handle.charAt(0)} size={26} />
+          <DiceBearAvatar seed={p.handle} style="croodles-neutral" size={26} color={p.avatarColor} />
         </TouchableOpacity>
       ))}
       {presence.length > 4 && <Text style={s.presMore}>+{presence.length - 4}</Text>}
@@ -188,7 +155,7 @@ export default function RoomScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      <Header title={room?.name ?? name} onBack={() => navigation.goBack()} rightContent={presElements} />
+      <Header title={room?.name ?? name} onBack={() => navigation.goBack()} onTitlePress={isOwner ? () => setSheetVisible(true) : undefined} rightContent={presElements} />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.flex}>
         <FlatList
@@ -220,6 +187,15 @@ export default function RoomScreen({ route, navigation }: any) {
           placeholder={`Message #${room?.name ?? '...'}`}
         />
       </KeyboardAvoidingView>
+
+      <RoomSettingsSheet
+        visible={sheetVisible}
+        onClose={() => setSheetVisible(false)}
+        roomId={roomId}
+        userId={userId as string}
+        roomName={room?.name ?? name}
+        roomTopic={room?.topic}
+      />
     </SafeAreaView>
   );
 }

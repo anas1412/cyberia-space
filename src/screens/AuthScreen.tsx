@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight, avatarColors } from '../lib/theme';
 import Input from '../components/Input';
 import Button from '../components/Button';
-import Avatar from '../components/Avatar';
+import DiceBearAvatar from '../components/DiceBearAvatar';
 
 type Step = 'phone' | 'otp' | 'handle';
 
@@ -97,16 +97,18 @@ export default function AuthScreen({ navigation }: any) {
 
           {step === 'otp' && (
             <View style={s.form}>
-              <View style={s.otpRow}>
-                {[0, 1, 2, 3, 4, 5].map(i => (
-                  <View key={i} style={[s.otpBox, otp[i] && s.otpBoxFilled]}>
-                    <Text style={s.otpDigit}>{otp[i] || ''}</Text>
-                  </View>
-                ))}
+              <View style={{ position: 'relative', height: 56 }}>
+                <View style={s.otpRow}>
+                  {[0, 1, 2, 3, 4, 5].map(i => (
+                    <View key={i} style={[s.otpBox, otp[i] && s.otpBoxFilled]}>
+                      <Text style={s.otpDigit}>{otp[i] || ''}</Text>
+                    </View>
+                  ))}
+                </View>
+                <Input value={otp} onChangeText={t => setOtp(t.replace(/\D/g, '').slice(0, 6))}
+                  keyboardType="number-pad" autoFocus maxLength={6} caretHidden
+                  style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0 }} />
               </View>
-              <Input value={otp} onChangeText={t => setOtp(t.replace(/\D/g, '').slice(0, 6))}
-                keyboardType="number-pad" autoFocus maxLength={6}
-                style={{ position: 'absolute', opacity: 0, height: 0, width: 0 }} />
               {error ? <Text style={s.error}>{error}</Text> : null}
               <Button label="Continue" onPress={handleVerify} loading={loading} loadingLabel="Verifying…" disabled={otp.length !== 6} />
               <TouchableOpacity onPress={() => { setStep('phone'); setOtp(''); setError(''); }} style={s.link}>
@@ -128,7 +130,7 @@ export default function AuthScreen({ navigation }: any) {
               </View>
               {handle.length > 0 && (
                 <View style={s.preview}>
-                  <Avatar color={color} letter={handle.charAt(0)} size={40} />
+                  <DiceBearAvatar seed={handle || 'user'} style="croodles-neutral" size={40} color={color} />
                   <Text style={s.previewHandle}>@{handle}</Text>
                 </View>
               )}

@@ -6,13 +6,14 @@ import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 interface Props {
   title: string;
   onBack?: () => void;
+  onTitlePress?: () => void;
   leftContent?: React.ReactNode;
   rightLabel?: string;
   onRightPress?: () => void;
   rightContent?: React.ReactNode;
 }
 
-export default function Header({ title, onBack, leftContent, rightLabel, onRightPress, rightContent }: Props) {
+export default function Header({ title, onBack, onTitlePress, leftContent, rightLabel, onRightPress, rightContent }: Props) {
   return (
     <View style={s.wrap}>
       <View style={s.side}>
@@ -24,7 +25,13 @@ export default function Header({ title, onBack, leftContent, rightLabel, onRight
         {leftContent}
       </View>
 
-      <Text style={s.title} numberOfLines={1}>{title}</Text>
+      {onTitlePress ? (
+        <TouchableOpacity onPress={onTitlePress} style={s.titleBtn} activeOpacity={0.7}>
+          <Text style={s.titleText} numberOfLines={1}>{title}</Text>
+        </TouchableOpacity>
+      ) : (
+        <Text style={[s.titleText, { flex: 1 }]} numberOfLines={1}>{title}</Text>
+      )}
 
       <View style={[s.side, s.sideRight]}>
         {rightContent || (
@@ -58,8 +65,13 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  title: {
+  titleBtn: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 36,
+  },
+  titleText: {
     fontSize: fontSize.title,
     fontWeight: fontWeight.semibold,
     color: colors.text,

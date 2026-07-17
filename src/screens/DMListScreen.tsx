@@ -6,6 +6,7 @@ import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import { card, sectionLabel } from '../lib/sharedStyles';
+import DiceBearAvatar from '../components/DiceBearAvatar';
 import Header from '../components/Header';
 import EmptyState from '../components/EmptyState';
 
@@ -37,8 +38,8 @@ export default function DMListScreen({ navigation }: any) {
           <TouchableOpacity style={[card, s.dmCard]}
             onPress={() => navigation.navigate('DM', { conversationId: item._id })}
             activeOpacity={0.8}>
-            <View style={[s.avatar, { backgroundColor: item.other?.avatarColor ?? colors.accent }]}>
-              <Text style={s.avatarText}>{(item.other?.handle ?? '?').charAt(0).toUpperCase()}</Text>
+            <View>
+              <DiceBearAvatar seed={item.other?.handle ?? '?'} style="croodles-neutral" size={48} color={item.other?.avatarColor} />
               {item.unreadCount > 0 && <View style={s.unreadDot} />}
             </View>
             <View style={s.info}>

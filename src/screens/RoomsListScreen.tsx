@@ -8,6 +8,7 @@ import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import { card, sectionLabel } from '../lib/sharedStyles';
 import Header from '../components/Header';
 import EmptyState from '../components/EmptyState';
+import DiceBearAvatar from '../components/DiceBearAvatar';
 
 export default function RoomsListScreen({ navigation }: any) {
   const { user } = useAuth();
@@ -45,12 +46,11 @@ export default function RoomsListScreen({ navigation }: any) {
           <TouchableOpacity style={[card, s.roomCard]}
             onPress={() => navigation.navigate('Room', { roomId: item._id, name: item.name })}
             activeOpacity={0.8}>
-            <View style={s.roomIcon}>
-              <Text style={s.roomHash}>#</Text>
-            </View>
+            <DiceBearAvatar seed={item.name} style="glass" size={40} color={item.ownerColor} />
             <View style={s.roomInfo}>
               <Text style={s.roomName}>{item.name}</Text>
               {item.topic ? <Text style={s.roomTopic} numberOfLines={1}>{item.topic}</Text> : null}
+              <Text style={s.roomOwner}>by @{item.ownerHandle}</Text>
             </View>
             <View style={s.roomMeta}>
               {item.memberCount > 0 && <Text style={s.memberCount}>{item.memberCount} online</Text>}
@@ -102,6 +102,7 @@ const s = StyleSheet.create({
   roomInfo: { flex: 1 },
   roomName: { fontSize: fontSize.title, fontWeight: fontWeight.semibold, color: colors.text },
   roomTopic: { fontSize: fontSize.small, color: colors.textSecondary, marginTop: 2 },
+  roomOwner: { fontSize: fontSize.caption, color: colors.textMuted, marginTop: 2 },
   roomMeta: {},
   memberCount: { fontSize: fontSize.caption, color: colors.textMuted },
 });

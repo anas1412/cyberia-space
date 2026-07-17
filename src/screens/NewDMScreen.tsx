@@ -9,7 +9,7 @@ import { card, label as labelStyle } from '../lib/sharedStyles';
 import Header from '../components/Header';
 import Input from '../components/Input';
 import Button from '../components/Button';
-import Avatar from '../components/Avatar';
+import DiceBearAvatar from '../components/DiceBearAvatar';
 
 export default function NewDMScreen({ navigation }: any) {
   const { userId } = useAuth();
@@ -50,7 +50,7 @@ export default function NewDMScreen({ navigation }: any) {
             <View style={card}>
               {targetUser ? (
                 <View style={s.userRow}>
-                  <Avatar color={targetUser.avatarColor} letter={targetUser.handle.charAt(0)} size={44} />
+                  <DiceBearAvatar seed={targetUser.handle} style="croodles-neutral" size={44} color={targetUser.avatarColor} />
                   <View>
                     <Text style={s.userHandle}>@{targetUser.handle}</Text>
                     <Text style={s.userFound}>User found</Text>

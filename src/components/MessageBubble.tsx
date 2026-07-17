@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
-import Avatar from './Avatar';
+import DiceBearAvatar from './DiceBearAvatar';
 
 function fmtTime(ts: number) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -50,7 +50,7 @@ export default function MessageBubble({
       <View style={[s.row, isSelf && s.rowSelf]}>
         {!isSelf && (
           showAv
-            ? <Avatar color={msg.avatarColor} letter={msg.handle.charAt(0)} size={avSize} />
+            ? <DiceBearAvatar seed={msg.handle} style="croodles-neutral" size={avSize} color={msg.avatarColor} />
             : <View style={{ width: avSize }} />
         )}
 
@@ -71,7 +71,7 @@ export default function MessageBubble({
 
         {isSelf && (
           showAv
-            ? <Avatar color={msg.avatarColor} letter={msg.handle.charAt(0)} size={avSize} />
+            ? <DiceBearAvatar seed={msg.handle} style="croodles-neutral" size={avSize} color={msg.avatarColor} />
             : <View style={{ width: avSize }} />
         )}
       </View>

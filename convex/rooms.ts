@@ -4,11 +4,19 @@ import { v } from "convex/values";
 // List public rooms
 export const listPublic = query({
   handler: async (ctx) => {
-    return await ctx.db
+    const rooms = await ctx.db
       .query("rooms")
       .withIndex("by_type", (q) => q.eq("type", "public"))
       .order("desc")
       .take(50);
+    return await Promise.all(rooms.map(async (room) => {
+      const owner = await ctx.db.get(room.ownerId);
+      return {
+        ...room,
+        ownerHandle: owner?.handle ?? 'unknown',
+        ownerColor: owner?.avatarColor ?? '#888',
+      };
+    }));
   },
 });
 

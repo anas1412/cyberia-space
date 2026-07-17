@@ -9,7 +9,7 @@ import { card as cardStyle } from '../lib/sharedStyles';
 import Header from '../components/Header';
 import Input from '../components/Input';
 import Button from '../components/Button';
-import Avatar from '../components/Avatar';
+import DiceBearAvatar from '../components/DiceBearAvatar';
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, userId, logout } = useAuth();
@@ -45,7 +45,7 @@ export default function ProfileScreen({ navigation }: any) {
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.hero}>
-          <Avatar color={color} letter={(handle || user?.handle || '?').charAt(0)} size={88} />
+          <DiceBearAvatar seed={user?.handle ?? '?'} style="croodles-neutral" size={88} color={color} />
           <Text style={s.handleText}>@{handle || user?.handle}</Text>
           <View style={s.onlineBadge}>
             <View style={s.onlineDot} />
