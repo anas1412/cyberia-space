@@ -35,7 +35,7 @@ export default function ProfileScreen({ navigation }: any) {
   function confirmLogout() {
     Alert.alert('Sign out', 'You can sign back in anytime with your phone number.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign out', style: 'destructive', onPress: async () => { await logout(); navigation.replace('Auth'); } },
+      { text: 'Sign out', style: 'destructive', onPress: async () => { await logout(); navigation.getParent()?.replace('Auth'); } },
     ]);
   }
 
@@ -106,14 +106,14 @@ export default function ProfileScreen({ navigation }: any) {
           <View style={s.roomRow}>
             <Hash size={18} color={colors.accent} strokeWidth={2} />
             <Text style={s.roomText}>
-              {user?.privateRoomId ? 'My Room' : 'Create your room'}
+              {user?.privateRoomId ? 'Manage your room' : 'Create your room'}
             </Text>
             <ChevronRight size={14} color={colors.textMuted} strokeWidth={2} />
           </View>
           {user?.privateRoomId ? (
-            <Text style={s.roomSub}>Your permanent space — open to all</Text>
+            <Text style={s.roomSub}>Manage settings, members, and bans</Text>
           ) : (
-            <Text style={s.roomSub}>One per account, stays open when you're away</Text>
+            <Text style={s.roomSub}>One room per account — create yours</Text>
           )}
         </TouchableOpacity>
 

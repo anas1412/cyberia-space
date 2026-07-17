@@ -16,7 +16,11 @@ export default function RoomsListScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      <Header title="Rooms" rightLabel="New" onRightPress={() => navigation.navigate('NewRoom')} />
+      <Header
+        title="Rooms"
+        rightLabel={user?.privateRoomId ? undefined : 'New'}
+        onRightPress={() => navigation.navigate('NewRoom')}
+      />
 
       <FlatList
         data={rooms}
@@ -33,7 +37,7 @@ export default function RoomsListScreen({ navigation }: any) {
                   <View style={s.privateIcon}><Text style={s.privateIconText}>&#9672;</Text></View>
                   <View>
                     <Text style={s.privateTitle}>My Room</Text>
-                    <Text style={s.privateSub}>Your permanent space</Text>
+                    <Text style={s.privateSub}>Tap to join</Text>
                   </View>
                 </View>
                 <Text style={s.arrow}>&#8594;</Text>

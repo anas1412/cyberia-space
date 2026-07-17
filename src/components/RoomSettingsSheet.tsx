@@ -16,9 +16,11 @@ interface Props {
   userId: string;
   roomName: string;
   roomTopic?: string;
+  roomType?: string;
+  createdAt?: number;
 }
 
-export default function RoomSettingsSheet({ visible, onClose, roomId, userId, roomName, roomTopic }: Props) {
+export default function RoomSettingsSheet({ visible, onClose, roomId, userId, roomName, roomTopic, roomType, createdAt }: Props) {
   const [name, setName] = useState(roomName);
   const [topic, setTopic] = useState(roomTopic ?? '');
   const [saving, setSaving] = useState(false);
@@ -66,11 +68,36 @@ export default function RoomSettingsSheet({ visible, onClose, roomId, userId, ro
 
       <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
 
+        {/* ── Room meta ── */}
+        <View style={s.metaRow}>
+          {roomType && (
+            <View style={[s.badge, roomType === 'private' && s.badgePrivate]}>
+              <Text style={[s.badgeText, roomType === 'private' && s.badgeTextPrivate]}>
+                {roomType === 'private' ? 'Private' : 'Public'}
+              </Text>
+            </View>
+          )}
+          {createdAt && (
+            <Text style={s.metaDate}>
+              Created {new Date(createdAt).toLocaleDateString([], { month: 'long', year: 'numeric' })}
+            </Text>
+          )}
+        </View>
         {/* ── Room info ── */}
         <View style={s.section}>
           <Text style={s.sectionTitle}>Room info</Text>
           <Input value={name} onChangeText={setName} placeholder="Room name" maxLength={40} />
           <Input value={topic} onChangeText={setTopic} placeholder="Optional topic" maxLength={100} />
+
+          <View style={s.toggleRow}>
+            <TouchableOpacity style={[s.seg, roomType === 'public' && s.segActive]} onPress={() => updateRoom({ roomId, userId: userId as any, type: 'public' })} activeOpacity={0.8}>
+              <Text style={[s.segText, roomType === 'public' && s.segTextActive]}>Public</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[s.seg, roomType === 'private' && s.segActive]} onPress={() => updateRoom({ roomId, userId: userId as any, type: 'private' })} activeOpacity={0.8}>
+              <Text style={[s.segText, roomType === 'private' && s.segTextActive]}>Private</Text>
+            </TouchableOpacity>
+          </View>
+
           <Button label="Save changes" onPress={handleSave} loading={saving} loadingLabel="Saving…" disabled={!name.trim()} />
         </View>
 
@@ -85,7 +112,7 @@ export default function RoomSettingsSheet({ visible, onClose, roomId, userId, ro
               return (
                 <View key={p.userId} style={s.memberRow}>
                   <View style={s.memberInfo}>
-                    <DiceBearAvatar seed={p.handle} style="croodles-neutral" color={p.avatarColor} />
+                    <DiceBearAvatar seed={p.handle} style="croodles-neutral" size={32} bgColor={p.avatarColor} />
                     <View>
                       <Text style={s.memberName}>@{p.handle}{isOwner ? ' (you)' : ''}</Text>
                     </View>
@@ -174,6 +201,35 @@ const s = StyleSheet.create({
 
   section: { gap: spacing.md },
   sectionTitle: { fontSize: fontSize.small, fontWeight: fontWeight.semibold, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  badge: {
+    backgroundColor: colors.accentBg, borderRadius: radius.sm,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
+    borderWidth: 1, borderColor: 'rgba(232,168,64,0.2)',
+  },
+  badgePrivate: {
+    backgroundColor: 'rgba(156,156,148,0.1)', borderColor: 'rgba(156,156,148,0.2)',
+  },
+  badgeText: { color: colors.accent, fontSize: fontSize.caption, fontWeight: fontWeight.semibold },
+  badgeTextPrivate: { color: colors.textSecondary },
+  metaDate: { fontSize: fontSize.caption, color: colors.textMuted },
+  idRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, paddingHorizontal: spacing.lg,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  idLabel: { fontSize: fontSize.small, color: colors.textSecondary },
+  idValue: { fontSize: fontSize.caption, color: colors.textMuted, maxWidth: '60%' },
+
+  toggleRow: {
+    flexDirection: 'row', backgroundColor: colors.elevated,
+    borderRadius: radius.md, padding: 3, borderWidth: 1, borderColor: colors.borderStrong,
+  },
+  seg: { flex: 1, paddingVertical: spacing.md, alignItems: 'center', borderRadius: radius.sm - 2 },
+  segActive: { backgroundColor: colors.accent },
+  segText: { fontSize: fontSize.body, fontWeight: fontWeight.semibold, color: colors.textMuted },
+  segTextActive: { color: '#000' },
 
   empty: { color: colors.textMuted, fontSize: fontSize.body, paddingVertical: spacing.sm },
 

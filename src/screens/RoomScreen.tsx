@@ -195,6 +195,8 @@ export default function RoomScreen({ route, navigation }: any) {
         userId={userId as string}
         roomName={room?.name ?? name}
         roomTopic={room?.topic}
+        roomType={room?.type}
+        createdAt={room?.createdAt}
       />
     </SafeAreaView>
   );
