@@ -15,12 +15,11 @@ export default function ResponsiveSheet({ visible, onClose, children }: Props) {
   if (isDesktop) {
     return (
       <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-        <View style={s.overlay}>
-          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
-          <View style={[s.centeredSheet, { maxWidth: sheetMaxWidth }]}>
+        <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={onClose}>
+          <View style={[s.centeredSheet, { maxWidth: sheetMaxWidth }]} onStartShouldSetResponder={() => true}>
             {children}
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
     );
   }
@@ -29,7 +28,7 @@ export default function ResponsiveSheet({ visible, onClose, children }: Props) {
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={s.overlay}>
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
-        <View style={s.sheet}>
+        <View style={s.sheet} onStartShouldSetResponder={() => true}>
           {children}
         </View>
       </View>

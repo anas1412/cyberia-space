@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
 import { X, Trash2, Copy, Link, Plus, Trash } from 'lucide-react-native';
 import { useMutation, useQuery } from 'convex/react';
+
+async function copyToClipboard(text: string) {
+  if (Platform.OS === 'web') {
+    await navigator.clipboard.writeText(text);
+  } else {
+    const Clipboard = require('expo-clipboard');
+    await Clipboard.setStringAsync(text);
+  }
+}
 import { api } from '../../convex/_generated/api';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import ResponsiveSheet from './ResponsiveSheet';
@@ -130,7 +138,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                  <TouchableOpacity style={s.copyBtn} onPress={() => Clipboard.setString(inv.code)}>
+                  <TouchableOpacity style={s.copyBtn} onPress={() => copyToClipboard(inv.code)}>
                     <Copy size={14} color={colors.textSecondary} />
                   </TouchableOpacity>
                   <TouchableOpacity style={s.copyBtn} onPress={() => revokeInvite({ roomId, userId: userId as any, inviteId: inv._id })}>
@@ -175,7 +183,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                <TouchableOpacity style={s.copyBtn} onPress={() => Clipboard.setString(`https://chat.cyberiaspace.app/guest/${gl.token}`)}>
+                <TouchableOpacity style={s.copyBtn} onPress={() => copyToClipboard(`https://chat.cyberiaspace.app/guest/${gl.token}`)}>
                   <Copy size={14} color={colors.textSecondary} />
                 </TouchableOpacity>
                 <TouchableOpacity style={s.copyBtn} onPress={() => revokeGuestLink({ roomId, userId: userId as any, guestId: gl._id })}>
