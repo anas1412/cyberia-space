@@ -10,6 +10,7 @@ import DiceBearAvatar from '../components/DiceBearAvatar';
 import MessageBubble from '../components/MessageBubble';
 import ChatInput from '../components/ChatInput';
 import Loading from '../components/Loading';
+import ContentWrap from '../components/ContentWrap';
 
 export default function GuestScreen({ route, navigation }: any) {
   const { token } = route.params;
@@ -60,8 +61,10 @@ export default function GuestScreen({ route, navigation }: any) {
   if (!guest && !error) {
     return (
       <SafeAreaView style={s.container} edges={['top']}>
-        <Header title="Joining…" onBack={() => navigation.replace('Auth')} />
-        <Loading />
+        <ContentWrap variant="chat">
+          <Header title="Joining…" onBack={() => navigation.replace('Auth')} />
+          <Loading />
+        </ContentWrap>
       </SafeAreaView>
     );
   }
@@ -70,19 +73,22 @@ export default function GuestScreen({ route, navigation }: any) {
   if (error) {
     return (
       <SafeAreaView style={s.container} edges={['top']}>
-        <Header title="Invalid link" onBack={() => navigation.replace('Auth')} />
-        <View style={s.centered}>
-          <Text style={s.errorText}>{error}</Text>
-          <TouchableOpacity style={s.authBtn} onPress={() => navigation.replace('Auth')}>
-            <Text style={s.authBtnText}>Go to login</Text>
-          </TouchableOpacity>
-        </View>
+        <ContentWrap variant="chat">
+          <Header title="Invalid link" onBack={() => navigation.replace('Auth')} />
+          <View style={s.centered}>
+            <Text style={s.errorText}>{error}</Text>
+            <TouchableOpacity style={s.authBtn} onPress={() => navigation.replace('Auth')}>
+              <Text style={s.authBtnText}>Go to login</Text>
+            </TouchableOpacity>
+          </View>
+        </ContentWrap>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
+      <ContentWrap variant="chat">
       <Header
         title={guest.roomName ?? 'Room'}
         onBack={() => navigation.replace('Auth')}
@@ -133,6 +139,7 @@ export default function GuestScreen({ route, navigation }: any) {
           placeholder="Message…"
         />
       </KeyboardAvoidingView>
+      </ContentWrap>
     </SafeAreaView>
   );
 }

@@ -54,7 +54,7 @@ export default defineSchema({
 
   messages: defineTable({
     roomId: v.id("rooms"),
-    userId: v.id("users"),
+    userId: v.union(v.id("users"), v.string()),
     handle: v.string(),
     avatarColor: v.string(),
     text: v.string(),
