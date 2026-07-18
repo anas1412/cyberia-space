@@ -26,7 +26,9 @@ export default function AuthScreen({ navigation }: any) {
   const [token, setToken] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sentCode, setSentCode] = useState('');
 
+  const bypass = process.env.EXPO_PUBLIC_TWILIO_BYPASS === 'true';
   const sendOtp = useAction(api.auth.sendOtp);
   const verifyOtp = useAction(api.auth.verifyOtp);
   const setHandleFn = useMutation(api.auth.setHandle);
@@ -36,8 +38,9 @@ export default function AuthScreen({ navigation }: any) {
     if (cleaned.length < 8) { setError('Enter a valid phone number.'); return; }
     setLoading(true); setError('');
     try {
-      const res = await sendOtp({ phone: cleaned });
+      const res = await sendOtp({ phone: cleaned, bypass });
       if (!res.success) { setError(res.error ?? 'Failed to send code.'); setLoading(false); return; }
+      if (res.code) setSentCode(res.code);
       setStep('otp');
     }
     catch (e: any) { setError(e.data?.message ?? 'Failed to send code. Check your number.'); }
@@ -47,7 +50,7 @@ export default function AuthScreen({ navigation }: any) {
   async function handleVerify() {
     setLoading(true); setError('');
     try {
-      const res = await verifyOtp({ phone: phone.replace(/\s/g, ''), code: otp, platform: 'mobile' });
+      const res = await verifyOtp({ phone: phone.replace(/\s/g, ''), code: otp, platform: 'mobile', bypass });
       if (!res.success) { setError(res.error ?? 'Invalid code'); setLoading(false); return; }
       setUserId(res.userId as string); setToken(res.token as string);
       if (res.isNewUser) setStep('handle');
@@ -104,6 +107,12 @@ export default function AuthScreen({ navigation }: any) {
 
           {step === 'otp' && (
             <View style={s.form}>
+              {bypass && sentCode ? (
+                <View style={s.bypassBox}>
+                  <Text style={s.bypassLabel}>Your code</Text>
+                  <Text style={s.bypassCode}>{sentCode}</Text>
+                </View>
+              ) : null}
               <View style={{ position: 'relative', height: 56 }}>
                 <View style={s.otpRow}>
                   {[0, 1, 2, 3, 4, 5].map(i => (
@@ -179,4 +188,14 @@ const s = StyleSheet.create({
   link: { alignItems: 'center', padding: spacing.sm },
   linkText: { color: colors.textSecondary, fontSize: fontSize.body },
   error: { color: colors.error, fontSize: fontSize.small, textAlign: 'center' },
+  bypassBox: {
+    backgroundColor: colors.accentBg,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  bypassLabel: { fontSize: fontSize.small, color: colors.textSecondary, marginBottom: 4 },
+  bypassCode: { fontSize: 28, fontWeight: fontWeight.bold, color: colors.accent, letterSpacing: 6 },
 });

@@ -29,23 +29,15 @@ export const sendVerification = internalAction({
 export const verifyCode = internalAction({
   args: { phone: v.string(), code: v.string() },
   handler: async (_, { phone, code }) => {
-    const auth = btoa(
-      `${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`
-    );
-
-    const res = await fetch(
-      `https://verify.twilio.com/v2/Services/${VERIFY_SERVICE_SID}/VerificationCheck`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${auth}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({ to: phone, code }),
-      }
-    );
-
-    const data = await res.json();
-    return { approved: data.status === "approved" };
+    try {
+      const check = await client.verify.v2
+        .services(VERIFY_SERVICE_SID)
+        .verificationChecks.create({ to: phone, code });
+      console.log(`Twilio verify check for ${phone}: status=${check.status}`);
+      return { approved: check.status === "approved" };
+    } catch (err: any) {
+      console.error(`Twilio verifyCode failed for ${phone}:`, err.message);
+      return { approved: false };
+    }
   },
 });

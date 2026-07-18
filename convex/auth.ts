@@ -43,21 +43,26 @@ export const prepareOtpSession = internalMutation({
       .collect();
     for (const s of existing) await ctx.db.delete(s._id);
 
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
     await ctx.db.insert("otpSessions", {
       phone,
-      code: "twilio-verify",
+      code,
       expiresAt: Date.now() + 10 * 60 * 1000,
       verified: false,
     });
+    return { code };
   },
 });
 
 // Send OTP — action (errors propagate to client)
 export const sendOtp = action({
-  args: { phone: v.string() },
-  handler: async (ctx, { phone }): Promise<{ success: boolean; error?: string }> => {
+  args: { phone: v.string(), bypass: v.boolean() },
+  handler: async (ctx, { phone, bypass }): Promise<{ success: boolean; error?: string; code?: string }> => {
     try {
-      await ctx.runMutation(internal.auth.prepareOtpSession, { phone });
+      const { code } = await ctx.runMutation(internal.auth.prepareOtpSession, { phone });
+      if (bypass) {
+        return { success: true, code };
+      }
       await ctx.runAction(internal.twilio.sendVerification, { phone });
       return { success: true };
     } catch (err: any) {
@@ -69,14 +74,18 @@ export const sendOtp = action({
 
 // Verify OTP — action (fetch requires Node.js runtime)
 export const verifyOtp = action({
-  args: { phone: v.string(), code: v.string(), platform: v.string() },
-  handler: async (ctx, { phone, code, platform }): Promise<{ success: boolean; error?: string; token?: string; userId?: string; isNewUser?: boolean }> => {
+  args: { phone: v.string(), code: v.string(), platform: v.string(), bypass: v.boolean() },
+  handler: async (ctx, { phone, code, platform, bypass }): Promise<{ success: boolean; error?: string; token?: string; userId?: string; isNewUser?: boolean }> => {
     const pending = await ctx.runQuery(internal.auth.findPendingSession, { phone });
     if (!pending) return { success: false, error: "No OTP found. Request a new one." };
     if (pending.expiresAt < Date.now()) return { success: false, error: "OTP expired." };
 
-    const result = await ctx.runAction(internal.twilio.verifyCode, { phone, code });
-    if (!result.approved) return { success: false, error: "Invalid code." };
+    if (bypass) {
+      if (pending.code !== code) return { success: false, error: "Invalid code." };
+    } else {
+      const result = await ctx.runAction(internal.twilio.verifyCode, { phone, code });
+      if (!result.approved) return { success: false, error: "Invalid code." };
+    }
 
     await ctx.runMutation(internal.auth.consumePendingSession, { sessionId: pending._id });
     const { userId, isNewUser } = await ctx.runMutation(internal.auth.authenticateUser, { phone }) as { userId: any; isNewUser: boolean };
