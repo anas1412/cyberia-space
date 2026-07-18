@@ -19,3 +19,27 @@ export const sendVerification = internalAction({
       .verifications.create({ to: phone, channel: "sms" });
   },
 });
+
+export const verifyCode = internalAction({
+  args: { phone: v.string(), code: v.string() },
+  handler: async (_, { phone, code }) => {
+    const auth = btoa(
+      `${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`
+    );
+
+    const res = await fetch(
+      `https://verify.twilio.com/v2/Services/${VERIFY_SERVICE_SID}/VerificationCheck`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${auth}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({ to: phone, code }),
+      }
+    );
+
+    const data = await res.json();
+    return { approved: data.status === "approved" };
+  },
+});

@@ -41,7 +41,7 @@ export default function MainTabs() {
   return (
     <ResponsiveLayout
       activeTab={activeTab}
-      onTabPress={(name) => navigation.navigate(name)}
+      onTabPress={(name) => navigation.navigate('Main' as never, { screen: name } as never)}
       dmUnread={dmUnread}
     >
       <Tab.Navigator

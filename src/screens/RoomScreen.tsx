@@ -25,7 +25,7 @@ export default function RoomScreen({ route, navigation }: any) {
   const [sheetVisible, setSheetVisible] = useState(false);
   const [membersVisible, setMembersVisible] = useState(false);
   const prevPresence = useRef<Set<string>>(new Set());
-  const hasJoined = useRef(false);
+  const [hasJoined, setHasJoined] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const handleCache = useRef<Map<string, string>>(new Map());
   const listRef = useRef<FlatList>(null);
@@ -39,22 +39,14 @@ export default function RoomScreen({ route, navigation }: any) {
   const ping = useMutation(api.rooms.ping);
 
   useEffect(() => {
-    if (!userId || !room) return;
+    if (!userId) return;
     setJoinError(null);
     joinRoom({ userId: userId as any, roomId }).then((res: any) => {
       if (res?.error) setJoinError(res.error);
     });
     const interval = setInterval(() => ping({ userId: userId as any, roomId }), 30000);
     return () => { clearInterval(interval); leaveRoom({ userId: userId as any, roomId }); };
-  }, [userId, roomId, room]);
-
-  // Detect if kicked (no longer in presence)
-  useEffect(() => {
-    if (hasJoined.current && userId) {
-      const inPresence = (presence as any[]).some((p: any) => p.userId === userId);
-      if (!inPresence) navigation.goBack();
-    }
-  }, [presence, userId]);
+  }, [userId, roomId]);
 
   // Track presence changes → system events
   useEffect(() => {
@@ -66,9 +58,9 @@ export default function RoomScreen({ route, navigation }: any) {
     }
 
     // Wait until we detect ourselves in the room before tracking others
-    if (!hasJoined.current) {
+    if (!hasJoined) {
       if (userId && currentIds.has(userId)) {
-        hasJoined.current = true;
+        setHasJoined(true);
         const others = [...currentIds].filter(id => id !== userId);
         setEvents(prev => [
           ...prev,

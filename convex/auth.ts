@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation, internalQuery, action } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 
@@ -6,6 +6,32 @@ const AVATAR_COLORS = [
   "#1A6BFF","#0D4ED8","#2DD4BF","#0891B2",
   "#6366F1","#7C3AED","#0EA5E9","#06B6D4",
 ];
+
+// Internal mutation — creates or finds user (called from verifyOtp action)
+export const authenticateUser = internalMutation({
+  args: { phone: v.string() },
+  handler: async (ctx, { phone }) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_phone", (q) => q.eq("phone", phone))
+      .first();
+
+    if (user) {
+      await ctx.db.patch(user._id, { lastSeen: Date.now() });
+      return { userId: user._id, isNewUser: false };
+    }
+
+    const color = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
+    const userId = await ctx.db.insert("users", {
+      phone,
+      handle: `user_${Math.random().toString(36).slice(2, 8)}`,
+      avatarColor: color,
+      createdAt: Date.now(),
+      lastSeen: Date.now(),
+    });
+    return { userId, isNewUser: true };
+  },
+});
 
 // Send OTP via Twilio Verify
 export const sendOtp = mutation({
@@ -30,77 +56,59 @@ export const sendOtp = mutation({
   },
 });
 
-// Verify OTP — checks code directly with Twilio Verify API
-export const verifyOtp = mutation({
+// Verify OTP — action (fetch requires Node.js runtime)
+export const verifyOtp = action({
   args: { phone: v.string(), code: v.string(), platform: v.string() },
-  handler: async (ctx, { phone, code, platform }) => {
-    const pending = await ctx.db
-      .query("otpSessions")
-      .withIndex("by_phone", (q) => q.eq("phone", phone))
-      .first();
-
+  handler: async (ctx, { phone, code, platform }): Promise<{ success: boolean; error?: string; token?: string; userId?: string; isNewUser?: boolean }> => {
+    const pending = await ctx.runQuery(internal.auth.findPendingSession, { phone });
     if (!pending) return { success: false, error: "No OTP found. Request a new one." };
     if (pending.expiresAt < Date.now()) return { success: false, error: "OTP expired." };
 
-    // Check code with Twilio Verify API directly (mutations support fetch)
-    const auth = btoa(
-      `${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`
-    );
+    const result = await ctx.runAction(internal.twilio.verifyCode, { phone, code });
+    if (!result.approved) return { success: false, error: "Invalid code." };
 
-    const res = await fetch(
-      `https://verify.twilio.com/v2/Services/${process.env.TWILIO_VERIFY_SERVICE_SID}/VerificationCheck`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${auth}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({ to: phone, code }),
-      }
-    );
+    await ctx.runMutation(internal.auth.consumePendingSession, { sessionId: pending._id });
+    const { userId, isNewUser } = await ctx.runMutation(internal.auth.authenticateUser, { phone }) as { userId: any; isNewUser: boolean };
 
-    const data = await res.json();
-    if (data.status !== "approved") {
-      return { success: false, error: "Invalid code." };
-    }
-
-    await ctx.db.delete(pending._id);
-
-    // Find or create user
-    let user = await ctx.db
-      .query("users")
-      .withIndex("by_phone", (q) => q.eq("phone", phone))
-      .first();
-
-    let isNewUser = false;
-    if (!user) {
-      isNewUser = true;
-      const color = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
-      const userId = await ctx.db.insert("users", {
-        phone,
-        handle: `user_${Math.random().toString(36).slice(2, 8)}`,
-        avatarColor: color,
-        createdAt: Date.now(),
-        lastSeen: Date.now(),
-      });
-      user = await ctx.db.get(userId);
-    } else {
-      await ctx.db.patch(user._id, { lastSeen: Date.now() });
-    }
-
-    // Create auth session (30 day expiry)
     const token = Array.from({ length: 32 }, () =>
       Math.floor(Math.random() * 256).toString(16).padStart(2, "0"),
     ).join("");
 
+    await ctx.runMutation(internal.auth.createSession, { userId, token, platform });
+
+    return { success: true, token, userId, isNewUser };
+  },
+});
+
+// Internal: find pending OTP session
+export const findPendingSession = internalQuery({
+  args: { phone: v.string() },
+  handler: async (ctx, { phone }) => {
+    return await ctx.db
+      .query("otpSessions")
+      .withIndex("by_phone", (q) => q.eq("phone", phone))
+      .first();
+  },
+});
+
+// Internal: delete consumed OTP session
+export const consumePendingSession = internalMutation({
+  args: { sessionId: v.id("otpSessions") },
+  handler: async (ctx, { sessionId }) => {
+    await ctx.db.delete(sessionId);
+  },
+});
+
+// Internal: create auth session
+export const createSession = internalMutation({
+  args: { userId: v.id("users"), token: v.string(), platform: v.string() },
+  handler: async (ctx, { userId, token, platform }) => {
     await ctx.db.insert("sessions", {
-      userId: user!._id,
+      userId,
       token,
       expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
       platform,
     });
-
-    return { success: true, token, userId: user!._id, isNewUser };
   },
 });
 
