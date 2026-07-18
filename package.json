@@ -8,7 +8,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "verify": "npx tsc --noEmit && npx eslint . --fix"
   },
   "dependencies": {
     "@react-navigation/bottom-tabs": "^7.18.0",
@@ -29,7 +30,13 @@
     "react-native-reanimated": "4.3.1",
     "react-native-safe-area-context": "^5.8.0",
     "react-native-screens": "^4.25.2",
+    "react-native-svg": "^15.15.5",
     "react-native-web": "^0.21.2",
     "typescript": "~6.0.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^9.39.5",
+    "typescript-eslint": "^8.64.0"
   }
 }

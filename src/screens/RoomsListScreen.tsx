@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Star } from 'lucide-react-native';
-import { useQuery } from 'convex/react';
+import { Globe, Lock, EyeOff } from 'lucide-react-native';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
@@ -12,11 +12,15 @@ import EmptyState from '../components/EmptyState';
 import DiceBearAvatar from '../components/DiceBearAvatar';
 import SearchBar from '../components/SearchBar';
 import Loading from '../components/Loading';
+import Input from '../components/Input';
 
 export default function RoomsListScreen({ navigation }: any) {
-  const { user } = useAuth();
-  const rooms = useQuery(api.rooms.listPublic);
+  const { user, userId } = useAuth();
+  const rooms = useQuery(api.rooms.listPublic, { userId: userId as any });
   const [query, setQuery] = useState('');
+  const [codeModal, setCodeModal] = useState<{ visible: boolean; roomId?: string; roomName?: string }>({ visible: false });
+  const [inviteCode, setInviteCode] = useState('');
+  const joinRoom = useMutation(api.rooms.join);
 
   if (rooms === undefined) return <SafeAreaView style={s.container} edges={['top']}><Header title="Rooms" /><Loading /></SafeAreaView>;
 
@@ -66,13 +70,21 @@ export default function RoomsListScreen({ navigation }: any) {
             <View key={item._id}>
               {showAllLabel && <Text style={[sectionLabel, { marginTop: spacing.md, marginBottom: spacing.sm }]}>All Rooms</Text>}
             <TouchableOpacity style={[card, s.roomCard]}
-              onPress={() => navigation.navigate('Room', { roomId: item._id, name: item.name })}
+              onPress={() => {
+                if (item.type === 'invite' && !isMine) {
+                  setCodeModal({ visible: true, roomId: item._id, roomName: item.name });
+                } else {
+                  navigation.navigate('Room', { roomId: item._id, name: item.name });
+                }
+              }}
               activeOpacity={0.8}>
               <DiceBearAvatar seed={item.name} style="glass" size={40} bgColor={item.ownerColor} />
               <View style={s.roomInfo}>
                 <View style={s.nameRow}>
                   <Text style={s.roomName} numberOfLines={1}>{item.name}</Text>
-                  {isMine && <Star size={12} color={colors.accent} strokeWidth={2.5} fill={colors.accent} />}
+                  {item.type === 'public' && <Globe size={12} color={colors.textMuted} strokeWidth={2} />}
+                  {item.type === 'invite' && <Lock size={12} color={colors.textMuted} strokeWidth={2} />}
+                  {item.type === 'hidden' && <EyeOff size={12} color={colors.textMuted} strokeWidth={2} />}
                 </View>
                 {item.topic ? <Text style={s.roomTopic} numberOfLines={1}>{item.topic}</Text> : null}
                 <Text style={s.roomOwner}>by @{item.ownerHandle}</Text>
@@ -101,6 +113,40 @@ export default function RoomsListScreen({ navigation }: any) {
           )
         }
       />
+
+      {/* ── Invite Code Modal ── */}
+      {codeModal.visible && (
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <Text style={s.modalTitle}>Join {codeModal.roomName}</Text>
+            <Text style={s.modalSub}>This room requires an invite code</Text>
+            <Input
+              value={inviteCode}
+              onChangeText={(t) => setInviteCode(t.toUpperCase().slice(0, 6))}
+              placeholder="Enter 6‑char code"
+              maxLength={6}
+              autoCapitalize="characters"
+              autoFocus
+            />
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <TouchableOpacity style={s.modalCancel} onPress={() => { setCodeModal({ visible: false }); setInviteCode(''); }}>
+                <Text style={s.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.modalJoin, inviteCode.length < 6 && { opacity: 0.4 }]}
+                disabled={inviteCode.length < 6}
+                onPress={async () => {
+                  await joinRoom({ roomId: codeModal.roomId as any, userId: userId as any, code: inviteCode });
+                  setCodeModal({ visible: false }); setInviteCode('');
+                  navigation.navigate('Room', { roomId: codeModal.roomId, name: codeModal.roomName });
+                }}
+              >
+                <Text style={s.modalJoinText}>Join</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -133,4 +179,25 @@ const s = StyleSheet.create({
   createIconText: { fontSize: 20, color: colors.accent },
   createTitle: { fontSize: fontSize.title, fontWeight: fontWeight.semibold, color: colors.accent },
   createSub: { fontSize: fontSize.small, color: colors.textSecondary, marginTop: 2 },
+
+  // Code modal
+  modalOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center', alignItems: 'center',
+    padding: spacing.xl,
+    zIndex: 100,
+  },
+  modalCard: {
+    backgroundColor: colors.bg, borderRadius: radius.lg, padding: spacing.xl,
+    width: '100%', maxWidth: 340, gap: spacing.md,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  modalTitle: { fontSize: fontSize.header, fontWeight: fontWeight.bold, color: colors.text },
+  modalSub: { fontSize: fontSize.small, color: colors.textSecondary },
+  modalCancel: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.lg, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
+  modalCancelText: { color: colors.text, fontSize: fontSize.title, fontWeight: fontWeight.semibold },
+  modalJoin: { flex: 1, backgroundColor: colors.accent, borderRadius: radius.md, padding: spacing.lg, alignItems: 'center' },
+  modalJoinText: { color: '#000', fontSize: fontSize.title, fontWeight: fontWeight.semibold },
 });

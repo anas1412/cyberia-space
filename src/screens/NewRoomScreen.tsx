@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { Zap, Clock, Home, Users } from 'lucide-react-native';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
@@ -12,29 +12,23 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 
 export default function NewRoomScreen({ navigation }: any) {
-  const { userId, user } = useAuth();
+  const { userId } = useAuth();
   const [name, setName] = useState('');
   const [topic, setTopic] = useState('');
-  const [isPrivate, setIsPrivate] = useState(false);
+  const [roomType, setRoomType] = useState<'public' | 'invite' | 'hidden'>('public');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const createPublic = useMutation(api.rooms.createPublic);
-  const createPrivate = useMutation(api.rooms.createPrivate);
-  const hasPrivateRoom = !!user?.privateRoomId;
+  const createRoom = useMutation(api.rooms.create);
+  const myRoom = useQuery(api.rooms.getMyRoom, userId ? { userId: userId as any } : 'skip');
+  const hasRoom = !!myRoom;
 
   async function handleCreate() {
     if (!name.trim() || !userId) return;
     setLoading(true); setError('');
     try {
-      if (isPrivate) {
-        const res = await createPrivate({ userId: userId as any, name: name.trim() });
-        if ('error' in res && res.error) { setError(res.error); setLoading(false); return; }
-        navigation.replace('Room', { roomId: res.roomId, name: name.trim() });
-      } else {
-        const roomId = await createPublic({ userId: userId as any, name: name.trim(), topic: topic.trim() || undefined });
-        navigation.replace('Room', { roomId, name: name.trim() });
-      }
+      const res = await createRoom({ userId: userId as any, name: name.trim(), type: roomType, topic: topic.trim() || undefined });
+      navigation.replace('Room', { roomId: res.roomId, name: res.name ?? name.trim() });
     } catch (e: any) { setError(e.message); setLoading(false); }
   }
 
@@ -51,39 +45,44 @@ export default function NewRoomScreen({ navigation }: any) {
               placeholder="e.g. general, design, random" maxLength={40} autoFocus autoCapitalize="none" />
           </View>
 
-          {!isPrivate && (
-            <View style={s.field}>
-              <Text style={s.label}>Topic <Text style={s.labelOpt}>(optional)</Text></Text>
-              <Input value={topic} onChangeText={setTopic}
-                placeholder="What's this room about?" maxLength={100} />
-            </View>
-          )}
+          <View style={s.field}>
+            <Text style={s.label}>Topic <Text style={s.labelOpt}>(optional)</Text></Text>
+            <Input value={topic} onChangeText={setTopic}
+              placeholder="What's this room about?" maxLength={100} />
+          </View>
 
           <View style={s.toggleRow}>
-            <TouchableOpacity style={[s.seg, !isPrivate && s.segActive]} onPress={() => setIsPrivate(false)} activeOpacity={0.8}>
-              <Text style={[s.segText, !isPrivate && s.segTextActive]}>Public</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[s.seg, isPrivate && s.segActive]}
-              onPress={() => !hasPrivateRoom && setIsPrivate(true)} disabled={hasPrivateRoom} activeOpacity={0.8}>
-              <Text style={[s.segText, isPrivate && s.segTextActive]}>
-                Private{hasPrivateRoom ? ' (taken)' : ''}
-              </Text>
-            </TouchableOpacity>
+            {(['public', 'invite', 'hidden'] as const).map((t) => (
+              <TouchableOpacity
+                key={t}
+                style={[s.seg, roomType === t && s.segActive]}
+                onPress={() => !hasRoom && setRoomType(t)}
+                disabled={hasRoom}
+                activeOpacity={0.8}
+              >
+                <Text style={[s.segText, roomType === t && s.segTextActive]}>
+                  {t === 'public' ? 'Public' : t === 'invite' ? 'Invite' : 'Hidden'}
+                  {hasRoom ? ' (taken)' : ''}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
           <Text style={s.desc}>
-            {isPrivate
-              ? 'Your permanent space — one per account. Stays open when you\'re away.'
-              : 'Anyone can discover and join. No history on entry.'}
+            {roomType === 'public'
+              ? 'Anyone can discover and join.'
+              : roomType === 'invite'
+                ? 'Listed in directory. Join by invite code or guest link.'
+                : 'Unlisted. Only accessible via guest link.'}
           </Text>
 
           <View style={s.info}>
             {[
               { Icon: Zap, text: 'No message history when someone joins' },
               { Icon: Clock, text: 'All messages dissolve after 24 hours' },
-              isPrivate
-                ? { Icon: Home, text: 'Your room stays open even when you\'re away' }
-                : { Icon: Users, text: 'Anyone can discover and join' },
+              roomType === 'hidden'
+                ? { Icon: Home, text: 'Your room is unlisted, reachable only by link' }
+                : { Icon: Users, text: 'Discoverable and joinable via code or link' },
             ].map((item, i) => (
               <View key={i} style={s.infoRow}>
                 <item.Icon size={16} color={colors.textSecondary} strokeWidth={2} />
@@ -95,9 +94,9 @@ export default function NewRoomScreen({ navigation }: any) {
           {error ? <Text style={s.error}>{error}</Text> : null}
 
           <Button
-            label={isPrivate ? 'Claim my room' : 'Create room'}
+            label={hasRoom ? 'You already have a room' : 'Create room'}
             onPress={handleCreate}
-            disabled={!name.trim()}
+            disabled={!name.trim() || hasRoom}
             loading={loading}
             loadingLabel="Creating…"
           />

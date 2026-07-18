@@ -42,9 +42,9 @@ export default function AuthScreen({ navigation }: any) {
     try {
       const res = await verifyOtp({ phone: phone.replace(/\s/g, ''), code: otp, platform: 'mobile' });
       if (!res.success) { setError(res.error ?? 'Invalid code'); setLoading(false); return; }
-      setUserId(res.userId); setToken(res.token);
+      setUserId(res.userId as string); setToken(res.token as string);
       if (res.isNewUser) setStep('handle');
-      else { await login(res.token, res.userId); navigation.replace('Main'); }
+      else { await login(res.token as string, res.userId as string); navigation.replace('Main'); }
     } catch (e: any) { setError(e.message); }
     setLoading(false);
   }

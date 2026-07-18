@@ -13,9 +13,19 @@ import RoomScreen    from './src/screens/RoomScreen';
 import DMScreen      from './src/screens/DMScreen';
 import NewRoomScreen from './src/screens/NewRoomScreen';
 import NewDMScreen   from './src/screens/NewDMScreen';
+import GuestScreen   from './src/screens/GuestScreen';
 
 const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL ?? 'https://placeholder.convex.cloud');
 const Stack  = createNativeStackNavigator();
+
+const linking = {
+  prefixes: ['cyberia://', 'https://chat.cyberiaspace.app'],
+  config: {
+    screens: {
+      Guest: 'guest/:token',
+    },
+  },
+};
 
 export default function App() {
   return (
@@ -23,7 +33,7 @@ export default function App() {
       <ConvexProvider client={convex}>
         <AuthProvider>
           <StatusBar style="light" />
-          <NavigationContainer>
+          <NavigationContainer linking={linking}>
             <Stack.Navigator
               initialRouteName="Boot"
               screenOptions={{
@@ -39,6 +49,7 @@ export default function App() {
               <Stack.Screen name="DM"      component={DMScreen} />
               <Stack.Screen name="NewRoom" component={NewRoomScreen} />
               <Stack.Screen name="NewDM"   component={NewDMScreen} />
+              <Stack.Screen name="Guest"   component={GuestScreen} />
             </Stack.Navigator>
           </NavigationContainer>
         </AuthProvider>

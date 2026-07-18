@@ -50,13 +50,13 @@ export default function MessageBubble({
       <View style={[s.row, isSelf && s.rowSelf]}>
         {!isSelf && (
           showAv
-            ? <DiceBearAvatar seed={msg.handle} style="croodles-neutral" size={avSize} bgColor={msg.avatarColor} />
+            ? <DiceBearAvatar seed={msg.handle ?? msg.userId} style="croodles-neutral" size={avSize} bgColor={msg.avatarColor} />
             : <View style={{ width: avSize }} />
         )}
 
         <View style={[s.bubbleCol, isSelf && s.bubbleColSelf]}>
           {!isSelf && showHandle && showAv && (
-            <Text style={[s.handle, { color: msg.avatarColor }]}>@{msg.handle}</Text>
+            <Text style={[s.handle, { color: msg.avatarColor ?? colors.textMuted }]}>@{msg.handle ?? '…'}</Text>
           )}
           <View style={[s.bubble, isSelf ? s.bubbleSelf : s.bubbleOther, showAv && (isSelf ? s.bubbleSelfSharp : s.bubbleOtherSharp)]}>
             <Text style={s.text}>
@@ -71,7 +71,7 @@ export default function MessageBubble({
 
         {isSelf && (
           showAv
-            ? <DiceBearAvatar seed={msg.handle} style="croodles-neutral" size={avSize} bgColor={msg.avatarColor} />
+            ? <DiceBearAvatar seed={msg.handle ?? msg.userId} style="croodles-neutral" size={avSize} bgColor={msg.avatarColor} />
             : <View style={{ width: avSize }} />
         )}
       </View>

@@ -15,10 +15,6 @@ import RoomSettingsSheet from '../components/RoomSettingsSheet';
 import MembersSheet from '../components/MembersSheet';
 import Loading from '../components/Loading';
 
-function fmtTime(ts: number) {
-  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
 export default function RoomScreen({ route, navigation }: any) {
   const { roomId, name } = route.params;
   const { userId } = useAuth();
@@ -29,7 +25,7 @@ export default function RoomScreen({ route, navigation }: any) {
   const [membersVisible, setMembersVisible] = useState(false);
   const prevPresence = useRef<Set<string>>(new Set());
   const hasJoined = useRef(false);
-  const [banned, setBanned] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
   const handleCache = useRef<Map<string, string>>(new Map());
   const listRef = useRef<FlatList>(null);
 
@@ -42,9 +38,10 @@ export default function RoomScreen({ route, navigation }: any) {
   const ping = useMutation(api.rooms.ping);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !room) return;
+    setJoinError(null);
     joinRoom({ userId: userId as any, roomId }).then((res: any) => {
-      if (res?.error) setBanned(true);
+      if (res?.error) setJoinError(res.error);
     });
     const interval = setInterval(() => ping({ userId: userId as any, roomId }), 30000);
     return () => { clearInterval(interval); leaveRoom({ userId: userId as any, roomId }); };
@@ -163,11 +160,11 @@ export default function RoomScreen({ route, navigation }: any) {
     <SafeAreaView style={s.container} edges={['top']}>
       <Header title={room?.name ?? name} onBack={() => navigation.goBack()} onTitlePress={isOwner ? () => setSheetVisible(true) : undefined} rightContent={presElements} />
 
-      {banned ? (
+      {joinError ? (
         <View style={s.bannedWrap}>
-          <Ban size={48} color={colors.error} strokeWidth={1.5} />
-          <Text style={s.bannedTitle}>You are banned</Text>
-          <Text style={s.bannedSub}>You can no longer access this room</Text>
+          <Ban size={48} color={joinError === 'You are banned from this room' ? colors.error : colors.textSecondary} strokeWidth={1.5} />
+          <Text style={s.bannedTitle}>{joinError === 'You are banned from this room' ? 'You are banned' : 'Cannot join'}</Text>
+          <Text style={s.bannedSub}>{joinError}</Text>
           <TouchableOpacity style={s.bannedBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
             <Text style={s.bannedBtnText}>Go back</Text>
           </TouchableOpacity>
@@ -208,6 +205,7 @@ export default function RoomScreen({ route, navigation }: any) {
       <RoomSettingsSheet
         visible={sheetVisible}
         onClose={() => setSheetVisible(false)}
+        onDeleted={() => navigation.goBack()}
         roomId={roomId}
         userId={userId as string}
         roomName={room?.name ?? name}

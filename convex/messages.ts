@@ -10,15 +10,13 @@ function extractMentions(text: string): string[] {
 
 // Subscribe to live messages in a room (from join time only)
 export const subscribe = query({
-  args: { roomId: v.id("rooms"), since: v.number() },
+  args: { roomId: v.id("rooms"), since: v.optional(v.number()) },
   handler: async (ctx, { roomId, since }) => {
-    return await ctx.db
+    let q = ctx.db
       .query("messages")
-      .withIndex("by_room_time", (q) =>
-        q.eq("roomId", roomId).gt("timestamp", since)
-      )
-      .order("asc")
-      .take(200);
+      .withIndex("by_room_time", (q) => q.eq("roomId", roomId));
+    if (since) q = q.filter((q) => q.gt(q.field("timestamp"), since));
+    return await q.order("asc").take(200);
   },
 });
 
@@ -53,7 +51,7 @@ export const send = mutation({
     });
 
     // Notify private room owner if they are not present
-    if (room.type === "private" && room.ownerId !== userId) {
+    if (room.type === "hidden" && room.ownerId !== userId) {
       const ownerPresence = await ctx.db
         .query("presence")
         .withIndex("by_user_room", (q) =>
@@ -77,6 +75,30 @@ export const send = mutation({
     }
 
     return msgId;
+  },
+});
+
+// Send a message as a guest
+export const sendAsGuest = mutation({
+  args: {
+    roomId: v.id("rooms"),
+    handle: v.string(),
+    avatarColor: v.string(),
+    text: v.string(),
+  },
+  handler: async (ctx, { roomId, handle, avatarColor, text }) => {
+    if (!text.trim() || text.length > 1000) throw new Error("Invalid message");
+    const now = Date.now();
+    return await ctx.db.insert("messages", {
+      roomId,
+      userId: "guest" as any,
+      handle,
+      avatarColor,
+      text: text.trim(),
+      timestamp: now,
+      expiresAt: now + TTL_MS,
+      mentions: extractMentions(text),
+    });
   },
 });
 

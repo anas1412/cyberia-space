@@ -25,7 +25,8 @@ export default function ChatInput({ value, onChangeText, onSend, placeholder }: 
         maxLength={1000}
         blurOnSubmit={false}
         onKeyPress={(e) => {
-          if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+          const ne = e.nativeEvent as { key: string; shiftKey?: boolean };
+          if (ne.key === 'Enter' && !ne.shiftKey) {
             e.preventDefault();
             onSend();
           }

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Phone, Calendar, Hash, ChevronRight, LogOut } from 'lucide-react-native';
-import { useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
@@ -12,6 +12,7 @@ import ColorPicker from '../components/ColorPicker';
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, userId, logout } = useAuth();
+  const myRoom = useQuery(api.rooms.getMyRoom, userId ? { userId: userId as any } : 'skip');
   const [handle, setHandle] = useState(user?.handle ?? '');
   const [color, setColor] = useState(user?.avatarColor ?? '#E8A840');
   const [editing, setEditing] = useState(false);
@@ -95,8 +96,8 @@ export default function ProfileScreen({ navigation }: any) {
         {/* ── My Room ── */}
         <TouchableOpacity
           style={s.card}
-          onPress={() => user?.privateRoomId
-            ? navigation.navigate('Room', { roomId: user.privateRoomId, name: 'My Room' })
+          onPress={() => myRoom
+            ? navigation.navigate('Room', { roomId: myRoom._id, name: myRoom.name })
             : navigation.navigate('NewRoom')
           }
           activeOpacity={0.7}
@@ -104,11 +105,11 @@ export default function ProfileScreen({ navigation }: any) {
           <View style={s.roomRow}>
             <Hash size={18} color={colors.accent} strokeWidth={2} />
             <Text style={s.roomText}>
-              {user?.privateRoomId ? 'Manage your room' : 'Create your room'}
+              {myRoom ? 'Manage your room' : 'Create your room'}
             </Text>
             <ChevronRight size={14} color={colors.textMuted} strokeWidth={2} />
           </View>
-          {user?.privateRoomId ? (
+          {myRoom ? (
             <Text style={s.roomSub}>Manage settings, members, and bans</Text>
           ) : (
             <Text style={s.roomSub}>One room per account — create yours</Text>

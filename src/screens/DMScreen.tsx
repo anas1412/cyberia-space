@@ -37,7 +37,7 @@ export default function DMScreen({ route, navigation }: any) {
 
   if (messages === undefined) return <SafeAreaView style={s.container} edges={['top']}><Header title="..." onBack={() => navigation.goBack()} /><Loading /></SafeAreaView>;
 
-  const displayUser = otherUser ?? otherFromMsg;
+  const displayUser = otherUser;
 
   async function handleSend() {
     if (!input.trim() || !userId) return;

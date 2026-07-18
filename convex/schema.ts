@@ -35,7 +35,7 @@ export default defineSchema({
     name: v.string(),
     topic: v.optional(v.string()),
     ownerId: v.id("users"),
-    type: v.union(v.literal("public"), v.literal("private")),
+    type: v.union(v.literal("public"), v.literal("invite"), v.literal("hidden")),
     memberCount: v.number(),
     createdAt: v.number(),
   })
@@ -75,8 +75,6 @@ export default defineSchema({
   directMessages: defineTable({
     conversationId: v.id("conversations"),
     userId: v.id("users"),
-    handle: v.string(),
-    avatarColor: v.string(),
     text: v.string(),
     timestamp: v.number(),
     expiresAt: v.number(),
@@ -117,4 +115,31 @@ export default defineSchema({
   })
     .index("by_room", ["roomId"])
     .index("by_room_user", ["roomId", "userId"]),
+
+  roomInvites: defineTable({
+    roomId: v.id("rooms"),
+    code: v.string(),
+    createdBy: v.id("users"),
+    multiUse: v.boolean(),
+    useCount: v.number(),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_room", ["roomId"])
+    .index("by_code", ["code"]),
+
+  guestSessions: defineTable({
+    token: v.string(),
+    roomId: v.id("rooms"),
+    handle: v.string(),
+    avatarColor: v.string(),
+    createdBy: v.id("users"),
+    multiUse: v.boolean(),
+    useCount: v.number(),
+    joinedAt: v.number(),
+    expiresAt: v.number(),
+    active: v.boolean(),
+  })
+    .index("by_token", ["token"])
+    .index("by_room", ["roomId"]),
 });

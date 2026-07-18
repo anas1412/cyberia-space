@@ -89,8 +89,6 @@ export const send = mutation({
     await ctx.db.insert("directMessages", {
       conversationId,
       userId,
-      handle: user.handle,
-      avatarColor: user.avatarColor,
       text: text.trim(),
       timestamp: now,
       expiresAt: now + TTL_MS,
