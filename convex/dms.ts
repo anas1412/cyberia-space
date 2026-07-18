@@ -56,7 +56,7 @@ export const listForUser = query({
 export const subscribeMessages = query({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, { conversationId }) => {
-    return await ctx.db
+    const msgs = await ctx.db
       .query("directMessages")
       .withIndex("by_conversation_time", (q) =>
         q.eq("conversationId", conversationId)
@@ -64,6 +64,17 @@ export const subscribeMessages = query({
       .filter((q) => q.gt(q.field("expiresAt"), Date.now()))
       .order("asc")
       .take(300);
+
+    return await Promise.all(
+      msgs.map(async (m) => {
+        const user = await ctx.db.get(m.userId);
+        return {
+          ...m,
+          handle: user?.handle ?? "unknown",
+          avatarColor: user?.avatarColor ?? "#555",
+        };
+      })
+    );
   },
 });
 

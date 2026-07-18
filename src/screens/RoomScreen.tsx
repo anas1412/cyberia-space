@@ -46,7 +46,7 @@ export default function RoomScreen({ route, navigation }: any) {
     });
     const interval = setInterval(() => ping({ userId: userId as any, roomId }), 30000);
     return () => { clearInterval(interval); leaveRoom({ userId: userId as any, roomId }); };
-  }, [userId, roomId]);
+  }, [userId, roomId, room]);
 
   // Detect if kicked (no longer in presence)
   useEffect(() => {
