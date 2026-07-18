@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { X, Trash2, Copy, Link, Plus, Trash } from 'lucide-react-native';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -131,7 +132,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                  <TouchableOpacity style={s.copyBtn} onPress={() => Alert.alert('Invite code', inv.code)}>
+                  <TouchableOpacity style={s.copyBtn} onPress={() => Clipboard.setString(inv.code)}>
                     <Copy size={14} color={colors.textSecondary} />
                   </TouchableOpacity>
                   <TouchableOpacity style={s.copyBtn} onPress={() => revokeInvite({ roomId, userId: userId as any, inviteId: inv._id })}>
@@ -183,7 +184,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                <TouchableOpacity style={s.copyBtn} onPress={() => Alert.alert('Guest link', `https://chat.cyberiaspace.app/guest/${gl.token}`)}>
+                <TouchableOpacity style={s.copyBtn} onPress={() => Clipboard.setString(`https://chat.cyberiaspace.app/guest/${gl.token}`)}>
                   <Copy size={14} color={colors.textSecondary} />
                 </TouchableOpacity>
                 <TouchableOpacity style={s.copyBtn} onPress={() => revokeGuestLink({ roomId, userId: userId as any, guestId: gl._id })}>
@@ -196,7 +197,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
             <View style={s.generatedBox}>
               <Text style={s.generatedLabel}>New guest link</Text>
               <Text style={s.generatedCode} numberOfLines={1}>chat.cyberiaspace.app/guest/{generatedLink}</Text>
-              <TouchableOpacity style={s.copyBtn} onPress={() => Alert.alert('Guest link', `https://chat.cyberiaspace.app/guest/${generatedLink}`)}>
+              <TouchableOpacity style={s.copyBtn} onPress={() => Clipboard.setString(`https://chat.cyberiaspace.app/guest/${generatedLink}`)}>
                 <Text style={s.copyText}>Show link</Text>
               </TouchableOpacity>
             </View>
@@ -352,9 +353,9 @@ const s = StyleSheet.create({
   },
   genBtnText: { color: colors.accent, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
   generatedBox: {
-    backgroundColor: colors.accentBg, borderRadius: radius.md, padding: spacing.lg,
-    borderWidth: 1, borderColor: 'rgba(232,168,64,0.2)', gap: spacing.sm, alignItems: 'center',
+    backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.lg,
+    borderWidth: 1, borderColor: colors.border, gap: spacing.sm,
   },
-  generatedLabel: { fontSize: fontSize.caption, color: colors.accent, fontWeight: fontWeight.semibold },
-  generatedCode: { fontSize: fontSize.header, fontWeight: fontWeight.bold, color: colors.accent, letterSpacing: 3 },
+  generatedLabel: { fontSize: fontSize.caption, color: colors.textSecondary },
+  generatedCode: { fontSize: fontSize.body, fontWeight: fontWeight.medium, color: colors.text },
 });
