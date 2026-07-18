@@ -41,7 +41,7 @@ export default function ProfileScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      <ContentWrap variant="card">
+      <ContentWrap>
         <Header title="Profile" rightLabel="Save" onRightPress={handleSave} />
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
