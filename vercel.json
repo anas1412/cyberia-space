@@ -3,6 +3,9 @@
   "outputDirectory": "dist",
   "installCommand": "npm install --legacy-peer-deps",
   "framework": null,
+  "env": {
+    "EXPO_PUBLIC_CONVEX_URL": "https://honorable-armadillo-17.eu-west-1.convex.cloud"
+  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
