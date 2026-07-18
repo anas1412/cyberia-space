@@ -7,13 +7,10 @@ const AVATAR_COLORS = [
   "#6366F1","#7C3AED","#0EA5E9","#06B6D4",
 ];
 
-// Send OTP — in production replace with Twilio Verify
+// Send OTP via Twilio Verify
 export const sendOtp = mutation({
   args: { phone: v.string() },
   handler: async (ctx, { phone }) => {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 min
-
     // Invalidate old sessions
     const existing = await ctx.db
       .query("otpSessions")
@@ -23,30 +20,51 @@ export const sendOtp = mutation({
 
     await ctx.db.insert("otpSessions", {
       phone,
-      code, // In production: hash this and send via Twilio
-      expiresAt,
+      code: "twilio-verify",
+      expiresAt: Date.now() + 10 * 60 * 1000,
       verified: false,
     });
 
-    await ctx.scheduler.runAfter(0, internal.twilio.sendSms, { phone, code });
+    await ctx.scheduler.runAfter(0, internal.twilio.sendVerification, { phone });
     return { success: true };
   },
 });
 
-// Verify OTP and create/login user
+// Verify OTP — checks code directly with Twilio Verify API
 export const verifyOtp = mutation({
   args: { phone: v.string(), code: v.string(), platform: v.string() },
   handler: async (ctx, { phone, code, platform }) => {
-    const session = await ctx.db
+    const pending = await ctx.db
       .query("otpSessions")
       .withIndex("by_phone", (q) => q.eq("phone", phone))
       .first();
 
-    if (!session) return { success: false, error: "No OTP found. Request a new one." };
-    if (session.expiresAt < Date.now()) return { success: false, error: "OTP expired." };
-    if (session.code !== code) return { success: false, error: "Invalid code." };
+    if (!pending) return { success: false, error: "No OTP found. Request a new one." };
+    if (pending.expiresAt < Date.now()) return { success: false, error: "OTP expired." };
 
-    await ctx.db.patch(session._id, { verified: true });
+    // Check code with Twilio Verify API directly (mutations support fetch)
+    const auth = Buffer.from(
+      `${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`
+    ).toString("base64");
+
+    const res = await fetch(
+      `https://verify.twilio.com/v2/Services/${process.env.TWILIO_VERIFY_SERVICE_SID}/VerificationCheck`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${auth}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({ to: phone, code }),
+      }
+    );
+
+    const data = await res.json();
+    if (data.status !== "approved") {
+      return { success: false, error: "Invalid code." };
+    }
+
+    await ctx.db.delete(pending._id);
 
     // Find or create user
     let user = await ctx.db
