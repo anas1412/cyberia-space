@@ -23,7 +23,7 @@ export default function RoomsListScreen({ navigation }: any) {
   const [inviteCode, setInviteCode] = useState('');
   const joinRoom = useMutation(api.rooms.join);
 
-  if (rooms === undefined) return <SafeAreaView style={s.container} edges={['top']}><Header title="Rooms" /><Loading /></SafeAreaView>;
+  if (rooms === undefined) return <SafeAreaView style={s.container} edges={['top']}><ContentWrap><Header title="Rooms" /><Loading /></ContentWrap></SafeAreaView>;
 
   const filtered = query.trim()
     ? rooms.filter((r: any) => r.name.toLowerCase().includes(query.toLowerCase()) || r.topic?.toLowerCase().includes(query.toLowerCase()))

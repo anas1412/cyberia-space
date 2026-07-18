@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet } from 'react-native';
-import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { Hash, MessageCircle, CircleUser } from 'lucide-react-native';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -29,47 +28,69 @@ function TabIcon({ Icon, label, focused, badge }: {
   );
 }
 
+function DesktopTabs({ dmUnread }: { dmUnread: number }) {
+  const [activeTab, setActiveTab] = useState('Rooms');
+  const jumpToRef = useRef<((name: string) => void) | null>(null);
+
+  return (
+    <ResponsiveLayout
+      activeTab={activeTab}
+      onTabPress={(name) => jumpToRef.current?.(name)}
+      dmUnread={dmUnread}
+    >
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarShowLabel: false,
+          tabBarStyle: { display: 'none' },
+        }}
+        tabBar={(props) => {
+          jumpToRef.current = props.navigation.jumpTo;
+          const route = props.state.routes[props.state.index];
+          if (route && route.name !== activeTab) {
+            setActiveTab(route.name);
+          }
+          return null;
+        }}
+      >
+        <Tab.Screen name="Rooms" component={RoomsListScreen} />
+        <Tab.Screen name="DMList" component={DMListScreen} />
+        <Tab.Screen name="Profile" component={ProfileScreen} />
+      </Tab.Navigator>
+    </ResponsiveLayout>
+  );
+}
+
 export default function MainTabs() {
   const { userId } = useAuth();
   const { isDesktop } = useResponsive();
   const dms = useQuery(api.dms.listForUser, userId ? { userId: userId as any } : 'skip');
   const dmUnread = dms ? dms.filter((d: any) => d.unreadCount > 0).length : 0;
 
-  const navigation = useNavigation();
-  const activeTab = useNavigationState((state) => state?.routes[state.index]?.name ?? 'Rooms');
+  if (isDesktop) {
+    return <DesktopTabs dmUnread={dmUnread} />;
+  }
 
   return (
-    <ResponsiveLayout
-      activeTab={activeTab}
-      onTabPress={(name) => navigation.navigate('Main' as never, { screen: name } as never)}
-      dmUnread={dmUnread}
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: ts.tabBar,
+        tabBarShowLabel: false,
+      }}
     >
-      <Tab.Navigator
-        screenOptions={{
-          headerShown: false,
-          tabBarStyle: isDesktop ? { display: 'none' } : ts.tabBar,
-          tabBarShowLabel: false,
-        }}
-      >
-        <Tab.Screen name="Rooms" component={RoomsListScreen}
-          options={{
-            tabBarIcon: ({ focused }) => <TabIcon Icon={Hash} label="Rooms" focused={focused} />,
-          }}
-        />
-        <Tab.Screen name="DMList" component={DMListScreen}
-          options={{
-            tabBarIcon: ({ focused }) => (
-              <TabIcon Icon={MessageCircle} label="Messages" focused={focused} badge={dmUnread || undefined} />
-            ),
-          }}
-        />
-        <Tab.Screen name="Profile" component={ProfileScreen}
-          options={{
-            tabBarIcon: ({ focused }) => <TabIcon Icon={CircleUser} label="Profile" focused={focused} />,
-          }}
-        />
-      </Tab.Navigator>
-    </ResponsiveLayout>
+      <Tab.Screen name="Rooms" component={RoomsListScreen}
+        options={{ tabBarIcon: ({ focused }) => <TabIcon Icon={Hash} label="Rooms" focused={focused} /> }}
+      />
+      <Tab.Screen name="DMList" component={DMListScreen}
+        options={{ tabBarIcon: ({ focused }) => (
+          <TabIcon Icon={MessageCircle} label="Messages" focused={focused} badge={dmUnread || undefined} />
+        ) }}
+      />
+      <Tab.Screen name="Profile" component={ProfileScreen}
+        options={{ tabBarIcon: ({ focused }) => <TabIcon Icon={CircleUser} label="Profile" focused={focused} /> }}
+      />
+    </Tab.Navigator>
   );
 }
 

@@ -26,7 +26,7 @@ export default function DMListScreen({ navigation }: any) {
   const dms = useQuery(api.dms.listForUser, userId ? { userId: userId as any } : 'skip');
   const [query, setQuery] = useState('');
 
-  if (dms === undefined) return <SafeAreaView style={s.container} edges={['top']}><Header title="Messages" /><Loading /></SafeAreaView>;
+  if (dms === undefined) return <SafeAreaView style={s.container} edges={['top']}><ContentWrap><Header title="Messages" /><Loading /></ContentWrap></SafeAreaView>;
 
   const filtered = query.trim()
     ? dms.filter((d: any) => d.other?.handle?.toLowerCase().includes(query.toLowerCase()))

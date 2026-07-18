@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useMutation, useConvexAction } from 'convex/react';
+import { useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
@@ -26,7 +26,7 @@ export default function AuthScreen({ navigation }: any) {
   const [loading, setLoading] = useState(false);
 
   const sendOtp = useMutation(api.auth.sendOtp);
-  const verifyOtp = useConvexAction(api.auth.verifyOtp);
+  const verifyOtp = useAction(api.auth.verifyOtp);
   const setHandleFn = useMutation(api.auth.setHandle);
 
   async function handleSendOtp() {

@@ -36,7 +36,7 @@ export default function DMScreen({ route, navigation }: any) {
     if (userId && messages) markRead({ conversationId, userId: userId as any });
   }, [messages, userId]);
 
-  if (messages === undefined) return <SafeAreaView style={s.container} edges={['top']}><Header title="..." onBack={() => navigation.goBack()} /><Loading /></SafeAreaView>;
+  if (messages === undefined) return <SafeAreaView style={s.container} edges={['top']}><ContentWrap variant="chat"><Header title="..." onBack={() => navigation.goBack()} /><Loading /></ContentWrap></SafeAreaView>;
 
   const displayUser = otherUser;
 

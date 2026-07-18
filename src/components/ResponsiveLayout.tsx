@@ -64,7 +64,9 @@ const s = StyleSheet.create({
     backgroundColor: colors.bg,
     borderRightWidth: 1,
     borderRightColor: colors.border,
-    paddingTop: 16,
+    paddingTop: 40,
+    paddingBottom: 40,
+    justifyContent: 'center',
     gap: 4,
   },
   tab: {
@@ -77,7 +79,7 @@ const s = StyleSheet.create({
     position: 'relative',
   },
   tabActive: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.accentBg,
   },
   tabInner: {
     flexDirection: 'row',

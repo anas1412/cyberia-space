@@ -128,7 +128,7 @@ export default function RoomScreen({ route, navigation }: any) {
     if (room === null) navigation.goBack();
   }, [room]);
 
-  if (room === undefined) return <SafeAreaView style={s.container} edges={['top']}><Header title="..." onBack={() => navigation.goBack()} /><Loading /></SafeAreaView>;
+  if (room === undefined) return <SafeAreaView style={s.container} edges={['top']}><ContentWrap variant="chat"><Header title="..." onBack={() => navigation.goBack()} /><Loading /></ContentWrap></SafeAreaView>;
 
   const isOwner = room && userId && room.ownerId === userId;
 
