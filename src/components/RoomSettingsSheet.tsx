@@ -36,18 +36,8 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
   const revokeInvite = useMutation(api.rooms.revokeInvite);
   const createGuestLink = useMutation(api.rooms.createGuestLink);
   const revokeGuestLink = useMutation(api.rooms.revokeGuestLink);
-  const [localGuestLinks, setLocalGuestLinks] = useState<any[]>([]);
-  const [localInvites, setLocalInvites] = useState<any[]>([]);
-  const invitesRaw = useQuery(api.rooms.listInvites, roomId ? { roomId, userId: userId as any } : 'skip') ?? [];
-  const guestLinksRaw = useQuery(api.rooms.listGuestLinks, roomId ? { roomId, userId: userId as any } : 'skip') ?? [];
-  const invites = [
-    ...localInvites,
-    ...invitesRaw.filter((inv: any) => !localInvites.some((l: any) => l._id === inv._id)),
-  ];
-  const guestLinks = [
-    ...localGuestLinks,
-    ...guestLinksRaw.filter((gl: any) => !localGuestLinks.some((l: any) => l._id === gl._id)),
-  ];
+  const invites = useQuery(api.rooms.listInvites, roomId ? { roomId, userId: userId as any } : 'skip') ?? [];
+  const guestLinks = useQuery(api.rooms.listGuestLinks, roomId ? { roomId, userId: userId as any } : 'skip') ?? [];
   const [inviteMulti, setInviteMulti] = useState(false);
   const [inviteExpiry, setInviteExpiry] = useState(24);
 
@@ -165,8 +155,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
               ))}
             </View>
             <TouchableOpacity style={s.genBtn} onPress={async () => {
-              const res = await generateInvite({ roomId, userId: userId as any, multiUse: inviteMulti, expiresInHours: inviteExpiry || undefined });
-              setLocalInvites((prev) => [{ _id: res.inviteId, code: res.code, multiUse: inviteMulti, useCount: 0, expiresAt: res.expiresAt, createdBy: userId }, ...prev]);
+              await generateInvite({ roomId, userId: userId as any, multiUse: inviteMulti, expiresInHours: inviteExpiry || undefined });
             }}>
               <Plus size={14} color={colors.accent} />
               <Text style={s.genBtnText}>Generate code</Text>
@@ -196,8 +185,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
             </View>
           ))}
           <TouchableOpacity style={s.genBtn} onPress={async () => {
-            const res = await createGuestLink({ roomId, userId: userId as any, multiUse: inviteMulti, expiresInHours: inviteExpiry || undefined });
-            setLocalGuestLinks((prev) => [{ _id: res.guestId, token: res.token, createdAt: Date.now(), expiresAt: 0, uses: 0 }, ...prev]);
+            await createGuestLink({ roomId, userId: userId as any, multiUse: inviteMulti, expiresInHours: inviteExpiry || undefined });
           }}>
             <Link size={14} color={colors.accent} />
             <Text style={s.genBtnText}>Generate guest link</Text>
