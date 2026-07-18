@@ -58,7 +58,7 @@ export default function PhoneInput({ value, onChangeText, onSubmitEditing }: Pro
         onSubmitEditing={onSubmitEditing}
       />
 
-      <Modal visible={pickerOpen} animationType="slide" transparent onRequestClose={() => setPickerOpen(false)}>
+      <Modal visible={pickerOpen} animationType={isDesktop ? 'fade' : 'slide'} transparent onRequestClose={() => setPickerOpen(false)}>
         <View style={[s.overlay, isDesktop && s.overlayDesktop]}>
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setPickerOpen(false)} />
           <View style={[s.sheet, isDesktop && s.sheetDesktop]}>
@@ -123,7 +123,6 @@ const s = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   overlayDesktop: {
     justifyContent: 'center',
