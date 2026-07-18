@@ -3,9 +3,11 @@ import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platfor
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import { COUNTRIES } from '../lib/countries';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import ContentWrap from '../components/ContentWrap';
+import PhoneInput from '../components/PhoneInput';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import DiceBearAvatar from '../components/DiceBearAvatar';
@@ -16,7 +18,7 @@ type Step = 'phone' | 'otp' | 'handle';
 export default function AuthScreen({ navigation }: any) {
   const { login } = useAuth();
   const [step, setStep] = useState<Step>('phone');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState('+216');
   const [otp, setOtp] = useState('');
   const [handle, setHandle] = useState('');
   const [color, setColor] = useState('#E8A840');
@@ -31,8 +33,7 @@ export default function AuthScreen({ navigation }: any) {
 
   async function handleSendOtp() {
     const cleaned = phone.replace(/\s/g, '');
-    if (!cleaned.startsWith('+')) { setError('Include your country code, e.g. +1'); return; }
-    if (cleaned.length < 8) { setError('Phone number too short. Include country code.'); return; }
+    if (cleaned.length < 8) { setError('Enter a valid phone number.'); return; }
     setLoading(true); setError('');
     try { await sendOtp({ phone: cleaned }); setStep('otp'); }
     catch (e: any) { setError(e.data?.message ?? 'Failed to send code. Check your number.'); }
@@ -78,7 +79,7 @@ export default function AuthScreen({ navigation }: any) {
               {step === 'phone'
                 ? 'We\'ll send you a verification code'
                 : step === 'otp'
-                  ? `Sent to ${phone}`
+                  ? `Sent to ${COUNTRIES.find(c => phone.startsWith(c.dial))?.flag ?? ''} ${phone}`
                   : 'And pick a color to represent you'}
             </Text>
           </View>
@@ -91,9 +92,7 @@ export default function AuthScreen({ navigation }: any) {
 
           {step === 'phone' && (
             <View style={s.form}>
-              <Input value={phone} onChangeText={setPhone}
-                placeholder="+1 555 000 0000" keyboardType="phone-pad" autoFocus
-                returnKeyType="done" onSubmitEditing={handleSendOtp} />
+              <PhoneInput value={phone} onChangeText={setPhone} onSubmitEditing={handleSendOtp} />
               {error ? <Text style={s.error}>{error}</Text> : null}
               <Button label="Send code" onPress={handleSendOtp} loading={loading} loadingLabel="Sending…" />
             </View>
