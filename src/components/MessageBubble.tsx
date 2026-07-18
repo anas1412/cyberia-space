@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
+import { useResponsive } from '../lib/responsive';
 import DiceBearAvatar from './DiceBearAvatar';
 
 function fmtTime(ts: number) {
@@ -26,6 +27,7 @@ export default function MessageBubble({
   showTime = true,
   formatTime: fmt = fmtTime,
 }: Props) {
+  const { chatAvatar, bubbleMaxWidth } = useResponsive();
   const fade = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(4)).current;
 
@@ -37,7 +39,7 @@ export default function MessageBubble({
   }, []);
 
   const parts = (msg.text as string).split(/(@\w+)/g);
-  const avSize = 28;
+  const avSize = chatAvatar;
   const showAv = !isSelf && showAvatar;
 
   return (
@@ -54,7 +56,7 @@ export default function MessageBubble({
             : <View style={{ width: avSize }} />
         )}
 
-        <View style={[s.bubbleCol, isSelf && s.bubbleColSelf]}>
+        <View style={[s.bubbleCol, { maxWidth: bubbleMaxWidth }, isSelf && s.bubbleColSelf]}>
           {!isSelf && showHandle && showAv && (
             <Text style={[s.handle, { color: msg.avatarColor ?? colors.textMuted }]}>@{msg.handle ?? '…'}</Text>
           )}

@@ -7,6 +7,7 @@ import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import { label as labelStyle } from '../lib/sharedStyles';
+import ContentWrap from '../components/ContentWrap';
 import Header from '../components/Header';
 import Input from '../components/Input';
 import Button from '../components/Button';
@@ -34,7 +35,8 @@ export default function NewRoomScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      <Header title="New Room" onBack={() => navigation.goBack()} />
+      <ContentWrap>
+        <Header title="New Room" onBack={() => navigation.goBack()} />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.flex}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -102,6 +104,7 @@ export default function NewRoomScreen({ navigation }: any) {
           />
         </ScrollView>
       </KeyboardAvoidingView>
+      </ContentWrap>
     </SafeAreaView>
   );
 }

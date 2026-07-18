@@ -6,6 +6,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
+import ContentWrap from '../components/ContentWrap';
 import Header from '../components/Header';
 import DiceBearAvatar from '../components/DiceBearAvatar';
 import ColorPicker from '../components/ColorPicker';
@@ -40,7 +41,8 @@ export default function ProfileScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      <Header title="Profile" rightLabel="Save" onRightPress={handleSave} />
+      <ContentWrap variant="card">
+        <Header title="Profile" rightLabel="Save" onRightPress={handleSave} />
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
@@ -122,6 +124,7 @@ export default function ProfileScreen({ navigation }: any) {
           <Text style={s.signOutText}>Sign out</Text>
         </TouchableOpacity>
       </ScrollView>
+      </ContentWrap>
     </SafeAreaView>
   );
 }

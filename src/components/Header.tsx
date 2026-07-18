@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
+import { useResponsive } from '../lib/responsive';
 
 interface Props {
   title: string;
@@ -14,8 +15,9 @@ interface Props {
 }
 
 export default function Header({ title, onBack, onTitlePress, leftContent, rightLabel, onRightPress, rightContent }: Props) {
+  const { screenPadding, titleFontSize } = useResponsive();
   return (
-    <View style={s.wrap}>
+    <View style={[s.wrap, { paddingHorizontal: screenPadding }]}>
       <View style={s.side}>
         {onBack && (
           <TouchableOpacity onPress={onBack} style={s.back} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
@@ -27,10 +29,10 @@ export default function Header({ title, onBack, onTitlePress, leftContent, right
 
       {onTitlePress ? (
         <TouchableOpacity onPress={onTitlePress} style={s.titleBtn} activeOpacity={0.7}>
-          <Text style={s.titleText} numberOfLines={1}>{title}</Text>
+          <Text style={[s.titleText, { fontSize: titleFontSize }]} numberOfLines={1}>{title}</Text>
         </TouchableOpacity>
       ) : (
-        <Text style={[s.titleText, { flex: 1 }]} numberOfLines={1}>{title}</Text>
+        <Text style={[s.titleText, { flex: 1, fontSize: titleFontSize }]} numberOfLines={1}>{title}</Text>
       )}
 
       <View style={[s.side, s.sideRight]}>

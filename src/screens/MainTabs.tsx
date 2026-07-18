@@ -1,11 +1,14 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet } from 'react-native';
+import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { Hash, MessageCircle, CircleUser } from 'lucide-react-native';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
+import { useResponsive } from '../lib/responsive';
 import { colors, fontSize, fontWeight } from '../lib/theme';
+import ResponsiveLayout from '../components/ResponsiveLayout';
 import RoomsListScreen from './RoomsListScreen';
 import DMListScreen from './DMListScreen';
 import ProfileScreen from './ProfileScreen';
@@ -28,35 +31,45 @@ function TabIcon({ Icon, label, focused, badge }: {
 
 export default function MainTabs() {
   const { userId } = useAuth();
+  const { isDesktop } = useResponsive();
   const dms = useQuery(api.dms.listForUser, userId ? { userId: userId as any } : 'skip');
   const dmUnread = dms ? dms.filter((d: any) => d.unreadCount > 0).length : 0;
 
+  const navigation = useNavigation();
+  const activeTab = useNavigationState((state) => state?.routes[state.index]?.name ?? 'Rooms');
+
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: ts.tabBar,
-        tabBarShowLabel: false,
-      }}
+    <ResponsiveLayout
+      activeTab={activeTab}
+      onTabPress={(name) => navigation.navigate(name)}
+      dmUnread={dmUnread}
     >
-      <Tab.Screen name="Rooms" component={RoomsListScreen}
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon Icon={Hash} label="Rooms" focused={focused} />,
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: isDesktop ? { display: 'none' } : ts.tabBar,
+          tabBarShowLabel: false,
         }}
-      />
-      <Tab.Screen name="DMList" component={DMListScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon Icon={MessageCircle} label="Messages" focused={focused} badge={dmUnread || undefined} />
-          ),
-        }}
-      />
-      <Tab.Screen name="Profile" component={ProfileScreen}
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon Icon={CircleUser} label="Profile" focused={focused} />,
-        }}
-      />
-    </Tab.Navigator>
+      >
+        <Tab.Screen name="Rooms" component={RoomsListScreen}
+          options={{
+            tabBarIcon: ({ focused }) => <TabIcon Icon={Hash} label="Rooms" focused={focused} />,
+          }}
+        />
+        <Tab.Screen name="DMList" component={DMListScreen}
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <TabIcon Icon={MessageCircle} label="Messages" focused={focused} badge={dmUnread || undefined} />
+            ),
+          }}
+        />
+        <Tab.Screen name="Profile" component={ProfileScreen}
+          options={{
+            tabBarIcon: ({ focused }) => <TabIcon Icon={CircleUser} label="Profile" focused={focused} />,
+          }}
+        />
+      </Tab.Navigator>
+    </ResponsiveLayout>
   );
 }
 

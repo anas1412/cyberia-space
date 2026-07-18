@@ -7,6 +7,7 @@ import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import { card, sectionLabel } from '../lib/sharedStyles';
+import ContentWrap from '../components/ContentWrap';
 import Header from '../components/Header';
 import EmptyState from '../components/EmptyState';
 import DiceBearAvatar from '../components/DiceBearAvatar';
@@ -34,13 +35,14 @@ export default function RoomsListScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      <Header
-        title="Rooms"
-        rightLabel={user?.privateRoomId ? undefined : 'New'}
-        onRightPress={() => navigation.navigate('NewRoom')}
-      />
+      <ContentWrap>
+        <Header
+          title="Rooms"
+          rightLabel={user?.privateRoomId ? undefined : 'New'}
+          onRightPress={() => navigation.navigate('NewRoom')}
+        />
 
-      <FlatList
+        <FlatList
         data={sorted}
         keyExtractor={(item: any) => item._id}
         contentContainerStyle={s.list}
@@ -147,6 +149,7 @@ export default function RoomsListScreen({ navigation }: any) {
           </View>
         </View>
       )}
+      </ContentWrap>
     </SafeAreaView>
   );
 }

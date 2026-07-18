@@ -7,6 +7,7 @@ import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import Header from '../components/Header';
+import ContentWrap from '../components/ContentWrap';
 import DiceBearAvatar from '../components/DiceBearAvatar';
 import MessageBubble from '../components/MessageBubble';
 import SystemMessage from '../components/SystemMessage';
@@ -158,7 +159,8 @@ export default function RoomScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      <Header title={room?.name ?? name} onBack={() => navigation.goBack()} onTitlePress={isOwner ? () => setSheetVisible(true) : undefined} rightContent={presElements} />
+      <ContentWrap variant="chat">
+        <Header title={room?.name ?? name} onBack={() => navigation.goBack()} onTitlePress={isOwner ? () => setSheetVisible(true) : undefined} rightContent={presElements} />
 
       {joinError ? (
         <View style={s.bannedWrap}>
@@ -201,6 +203,8 @@ export default function RoomScreen({ route, navigation }: any) {
         />
       </KeyboardAvoidingView>
       )}
+
+      </ContentWrap>
 
       <RoomSettingsSheet
         visible={sheetVisible}

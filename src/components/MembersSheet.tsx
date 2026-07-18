@@ -4,7 +4,7 @@ import { X, UserMinus, Ban, Crown } from 'lucide-react-native';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
-import BottomSheet from './BottomSheet';
+import ResponsiveSheet from './ResponsiveSheet';
 import DiceBearAvatar from './DiceBearAvatar';
 
 interface Props {
@@ -22,7 +22,7 @@ export default function MembersSheet({ visible, onClose, roomId, userId, isOwner
   const banUser = useMutation(api.rooms.ban);
 
   return (
-    <BottomSheet visible={visible} onClose={onClose}>
+    <ResponsiveSheet visible={visible} onClose={onClose}>
       <View style={s.header}>
         <Text style={s.title}>Members · {members.length}</Text>
         <TouchableOpacity onPress={onClose} style={s.closeBtn}>
@@ -63,7 +63,7 @@ export default function MembersSheet({ visible, onClose, roomId, userId, isOwner
           })
         )}
       </ScrollView>
-    </BottomSheet>
+    </ResponsiveSheet>
   );
 }
 

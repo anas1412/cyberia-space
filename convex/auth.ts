@@ -43,9 +43,9 @@ export const verifyOtp = mutation({
     if (pending.expiresAt < Date.now()) return { success: false, error: "OTP expired." };
 
     // Check code with Twilio Verify API directly (mutations support fetch)
-    const auth = Buffer.from(
+    const auth = btoa(
       `${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`
-    ).toString("base64");
+    );
 
     const res = await fetch(
       `https://verify.twilio.com/v2/Services/${process.env.TWILIO_VERIFY_SERVICE_SID}/VerificationCheck`,

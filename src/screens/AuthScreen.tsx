@@ -5,6 +5,7 @@ import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
+import ContentWrap from '../components/ContentWrap';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import DiceBearAvatar from '../components/DiceBearAvatar';
@@ -65,7 +66,8 @@ export default function AuthScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={s.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.flex}>
+      <ContentWrap variant="auth">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.flex}>
         <View style={s.content}>
           <View style={s.header}>
             <Text style={s.title}>
@@ -136,6 +138,7 @@ export default function AuthScreen({ navigation }: any) {
           )}
         </View>
       </KeyboardAvoidingView>
+      </ContentWrap>
     </SafeAreaView>
   );
 }

@@ -6,6 +6,7 @@ import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import { card, sectionLabel } from '../lib/sharedStyles';
+import ContentWrap from '../components/ContentWrap';
 import DiceBearAvatar from '../components/DiceBearAvatar';
 import Header from '../components/Header';
 import EmptyState from '../components/EmptyState';
@@ -33,7 +34,8 @@ export default function DMListScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      <Header title="Messages" rightLabel="New" onRightPress={() => navigation.navigate('NewDM')} />
+      <ContentWrap>
+        <Header title="Messages" rightLabel="New" onRightPress={() => navigation.navigate('NewDM')} />
 
       <FlatList
         data={filtered}
@@ -90,6 +92,7 @@ export default function DMListScreen({ navigation }: any) {
           )
         }
       />
+      </ContentWrap>
     </SafeAreaView>
   );
 }

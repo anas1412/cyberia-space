@@ -4,7 +4,7 @@ import { X, Trash2, Copy, Link, Plus, Trash } from 'lucide-react-native';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
-import BottomSheet from './BottomSheet';
+import ResponsiveSheet from './ResponsiveSheet';
 import Input from './Input';
 import Button from './Button';
 
@@ -69,7 +69,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
   }
 
   return (
-    <BottomSheet visible={visible} onClose={onClose}>
+    <ResponsiveSheet visible={visible} onClose={onClose}>
       <View style={s.header}>
         <Text style={s.title}>Room Settings</Text>
         <TouchableOpacity onPress={onClose} style={s.closeBtn}>
@@ -250,7 +250,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
           )}
         </View>
       </ScrollView>
-    </BottomSheet>
+    </ResponsiveSheet>
   );
 }
 

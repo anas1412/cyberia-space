@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import { inputPill } from '../lib/sharedStyles';
 import Header from '../components/Header';
+import ContentWrap from '../components/ContentWrap';
 import DiceBearAvatar from '../components/DiceBearAvatar';
 import MessageBubble from '../components/MessageBubble';
 import EmptyState from '../components/EmptyState';
@@ -61,7 +62,8 @@ export default function DMScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      <Header
+      <ContentWrap variant="chat">
+        <Header
         title={`@${displayUser?.handle ?? '…'}`}
         onBack={() => navigation.goBack()}
         rightContent={
@@ -96,6 +98,7 @@ export default function DMScreen({ route, navigation }: any) {
           placeholder={`Message @${displayUser?.handle ?? '…'}`}
         />
       </KeyboardAvoidingView>
+      </ContentWrap>
     </SafeAreaView>
   );
 }
