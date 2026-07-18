@@ -23,6 +23,10 @@ export default function DMScreen({ route, navigation }: any) {
   const sendMsg = useMutation(api.dms.send);
   const markRead = useMutation(api.dms.markRead);
 
+  const otherFromMsg = messages?.find((m: any) => m.userId !== userId);
+  const otherUserId = otherFromMsg?.userId;
+  const otherUser = useQuery(api.users.get, otherUserId ? { userId: otherUserId } : 'skip');
+
   useEffect(() => {
     if (messages && messages.length > 0) setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
   }, [messages]);
@@ -33,7 +37,7 @@ export default function DMScreen({ route, navigation }: any) {
 
   if (messages === undefined) return <SafeAreaView style={s.container} edges={['top']}><Header title="..." onBack={() => navigation.goBack()} /><Loading /></SafeAreaView>;
 
-  const other = messages.find((m: any) => m.userId !== userId);
+  const displayUser = otherUser ?? otherFromMsg;
 
   async function handleSend() {
     if (!input.trim() || !userId) return;
@@ -58,10 +62,10 @@ export default function DMScreen({ route, navigation }: any) {
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <Header
-        title={`@${other?.handle ?? '…'}`}
+        title={`@${displayUser?.handle ?? '…'}`}
         onBack={() => navigation.goBack()}
         rightContent={
-          other ? <DiceBearAvatar seed={other.handle} style="croodles-neutral" size={36} bgColor={other.avatarColor} /> : undefined
+          displayUser ? <DiceBearAvatar seed={displayUser.handle} style="croodles-neutral" size={36} bgColor={displayUser.avatarColor} /> : undefined
         }
       />
 
@@ -89,7 +93,7 @@ export default function DMScreen({ route, navigation }: any) {
           value={input}
           onChangeText={setInput}
           onSend={handleSend}
-          placeholder={`Message @${other?.handle ?? '…'}`}
+          placeholder={`Message @${displayUser?.handle ?? '…'}`}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>

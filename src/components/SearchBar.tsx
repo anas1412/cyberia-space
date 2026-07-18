@@ -21,6 +21,7 @@ export default function SearchBar({ value, onChangeText, placeholder }: Props) {
         placeholderTextColor={colors.textMuted}
         autoCapitalize="none"
         autoCorrect={false}
+        maxLength={100}
       />
     </View>
   );

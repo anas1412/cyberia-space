@@ -71,7 +71,7 @@ export default function RoomsListScreen({ navigation }: any) {
               <DiceBearAvatar seed={item.name} style="glass" size={40} bgColor={item.ownerColor} />
               <View style={s.roomInfo}>
                 <View style={s.nameRow}>
-                  <Text style={s.roomName}>{item.name}</Text>
+                  <Text style={s.roomName} numberOfLines={1}>{item.name}</Text>
                   {isMine && <Star size={12} color={colors.accent} strokeWidth={2.5} fill={colors.accent} />}
                 </View>
                 {item.topic ? <Text style={s.roomTopic} numberOfLines={1}>{item.topic}</Text> : null}
@@ -115,7 +115,7 @@ const s = StyleSheet.create({
   },
   roomInfo: { flex: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  roomName: { fontSize: fontSize.title, fontWeight: fontWeight.semibold, color: colors.text },
+  roomName: { flexShrink: 1, fontSize: fontSize.title, fontWeight: fontWeight.semibold, color: colors.text },
   roomTopic: { fontSize: fontSize.small, color: colors.textSecondary, marginTop: 2 },
   roomOwner: { fontSize: fontSize.caption, color: colors.textMuted, marginTop: 2 },
   roomMeta: {},

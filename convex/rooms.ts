@@ -36,6 +36,7 @@ export const createPublic = mutation({
     topic: v.optional(v.string()),
   },
   handler: async (ctx, { userId, name, topic }) => {
+    if (!name.trim()) throw new Error("Room name required");
     // One room per user — check if user already owns one
     const existing = await ctx.db
       .query("rooms")
@@ -65,6 +66,7 @@ export const createPublic = mutation({
 export const createPrivate = mutation({
   args: { userId: v.id("users"), name: v.string() },
   handler: async (ctx, { userId, name }) => {
+    if (!name.trim()) throw new Error("Room name required");
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("User not found");
     if (user.privateRoomId) return { error: "You already have a private room.", roomId: user.privateRoomId };
@@ -231,7 +233,7 @@ export const update = mutation({
     if (!room) throw new Error("Room not found");
     if (room.ownerId !== userId) throw new Error("Not the owner");
     const patch: any = {};
-    if (name) patch.name = name.slice(0, 40);
+    if (name) { if (!name.trim()) throw new Error("Room name required"); patch.name = name.slice(0, 40); }
     if (topic !== undefined) patch.topic = topic.slice(0, 100) || undefined;
     if (type) patch.type = type;
     await ctx.db.patch(roomId, patch);
