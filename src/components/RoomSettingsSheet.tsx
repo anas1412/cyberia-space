@@ -36,12 +36,18 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
   const revokeInvite = useMutation(api.rooms.revokeInvite);
   const createGuestLink = useMutation(api.rooms.createGuestLink);
   const revokeGuestLink = useMutation(api.rooms.revokeGuestLink);
-  const invites = useQuery(api.rooms.listInvites, roomId ? { roomId, userId: userId as any } : 'skip') ?? [];
-  const guestLinks = useQuery(api.rooms.listGuestLinks, roomId ? { roomId, userId: userId as any } : 'skip') ?? [];
+  const invites = [
+    ...localInvites,
+    ...(useQuery(api.rooms.listInvites, roomId ? { roomId, userId: userId as any } : 'skip') ?? []).filter((inv: any) => !localInvites.some((l: any) => l._id === inv._id)),
+  ];
+  const guestLinks = [
+    ...localGuestLinks,
+    ...(useQuery(api.rooms.listGuestLinks, roomId ? { roomId, userId: userId as any } : 'skip') ?? []).filter((gl: any) => !localGuestLinks.some((l: any) => l._id === gl._id)),
+  ];
   const [inviteMulti, setInviteMulti] = useState(false);
   const [inviteExpiry, setInviteExpiry] = useState(24);
-  const [generatedCode, setGeneratedCode] = useState('');
-  const [generatedLink, setGeneratedLink] = useState('');
+  const [localGuestLinks, setLocalGuestLinks] = useState<any[]>([]);
+  const [localInvites, setLocalInvites] = useState<any[]>([]);
 
   useEffect(() => {
     if (visible) {
@@ -141,12 +147,6 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
                 </View>
               </View>
             ))}
-            {generatedCode ? (
-              <View style={s.generatedBox}>
-                <Text style={s.generatedLabel}>New code (copy it now)</Text>
-                <Text style={s.generatedCode}>{generatedCode}</Text>
-              </View>
-            ) : null}
             <View style={{ flexDirection: 'row', gap: spacing.sm }}>
               <TouchableOpacity style={[s.optBtn, !inviteMulti && s.optBtnActive]} onPress={() => setInviteMulti(false)}>
                 <Text style={[s.optBtnText, !inviteMulti && s.optBtnTextActive]}>Single use</Text>
@@ -164,7 +164,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
             </View>
             <TouchableOpacity style={s.genBtn} onPress={async () => {
               const res = await generateInvite({ roomId, userId: userId as any, multiUse: inviteMulti, expiresInHours: inviteExpiry || undefined });
-              setGeneratedCode(res.code);
+              setLocalInvites((prev) => [{ _id: res.inviteId, code: res.code, multiUse: inviteMulti, useCount: 0, expiresAt: res.expiresAt, createdBy: userId }, ...prev]);
             }}>
               <Plus size={14} color={colors.accent} />
               <Text style={s.genBtnText}>Generate code</Text>
@@ -193,18 +193,9 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
               </View>
             </View>
           ))}
-          {generatedLink ? (
-            <View style={s.generatedBox}>
-              <Text style={s.generatedLabel}>New guest link</Text>
-              <Text style={s.generatedCode} numberOfLines={1}>chat.cyberiaspace.app/guest/{generatedLink}</Text>
-              <TouchableOpacity style={s.copyBtn} onPress={() => Clipboard.setString(`https://chat.cyberiaspace.app/guest/${generatedLink}`)}>
-                <Text style={s.copyText}>Show link</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null}
           <TouchableOpacity style={s.genBtn} onPress={async () => {
             const res = await createGuestLink({ roomId, userId: userId as any, multiUse: inviteMulti, expiresInHours: inviteExpiry || undefined });
-            setGeneratedLink(res.token);
+            setLocalGuestLinks((prev) => [{ _id: res.guestId, token: res.token, createdAt: Date.now(), expiresAt: 0, uses: 0 }, ...prev]);
           }}>
             <Link size={14} color={colors.accent} />
             <Text style={s.genBtnText}>Generate guest link</Text>
@@ -352,10 +343,4 @@ const s = StyleSheet.create({
     borderWidth: 1.5, borderColor: 'rgba(232,168,64,0.3)', borderStyle: 'dashed',
   },
   genBtnText: { color: colors.accent, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
-  generatedBox: {
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.lg,
-    borderWidth: 1, borderColor: colors.border, gap: spacing.sm,
-  },
-  generatedLabel: { fontSize: fontSize.caption, color: colors.textSecondary },
-  generatedCode: { fontSize: fontSize.body, fontWeight: fontWeight.medium, color: colors.text },
 });

@@ -446,7 +446,7 @@ export const generateInvite = mutation({
     const now = Date.now();
     const expiresAt = expiresInHours ? now + expiresInHours * 60 * 60 * 1000 : now + 24 * 60 * 60 * 1000;
 
-    await ctx.db.insert("roomInvites", {
+    const _id = await ctx.db.insert("roomInvites", {
       roomId,
       code,
       createdBy: userId,
@@ -456,7 +456,7 @@ export const generateInvite = mutation({
       createdAt: now,
     });
 
-    return { code, expiresAt };
+    return { code, expiresAt, inviteId: _id };
   },
 });
 
