@@ -3,7 +3,7 @@ const ts = require("typescript-eslint");
 module.exports = ts.config(
   ...ts.configs.recommended,
   {
-    ignores: ["convex/_generated/**", "node_modules/**", ".claude/**"],
+    ignores: ["convex/_generated/**", "node_modules/**", ".claude/**", "dist/**"],
   },
   {
     rules: {

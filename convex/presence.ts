@@ -1,5 +1,4 @@
 import { internalMutation } from "./_generated/server";
-import { v } from "convex/values";
 
 // Called by cron — removes presence entries not pinged in 90s
 export const cleanupStale = internalMutation({
