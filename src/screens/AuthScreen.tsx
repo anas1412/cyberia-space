@@ -27,7 +27,7 @@ export default function AuthScreen({ navigation }: any) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const sendOtp = useMutation(api.auth.sendOtp);
+  const sendOtp = useAction(api.auth.sendOtp);
   const verifyOtp = useAction(api.auth.verifyOtp);
   const setHandleFn = useMutation(api.auth.setHandle);
 
@@ -35,7 +35,11 @@ export default function AuthScreen({ navigation }: any) {
     const cleaned = phone.replace(/\s/g, '');
     if (cleaned.length < 8) { setError('Enter a valid phone number.'); return; }
     setLoading(true); setError('');
-    try { await sendOtp({ phone: cleaned }); setStep('otp'); }
+    try {
+      const res = await sendOtp({ phone: cleaned });
+      if (!res.success) { setError(res.error ?? 'Failed to send code.'); setLoading(false); return; }
+      setStep('otp');
+    }
     catch (e: any) { setError(e.data?.message ?? 'Failed to send code. Check your number.'); }
     setLoading(false);
   }

@@ -11,7 +11,7 @@ const AVATAR_COLORS = [
 export const authenticateUser = internalMutation({
   args: { phone: v.string() },
   handler: async (ctx, { phone }) => {
-    const user = await ctx.db
+    let user = await ctx.db
       .query("users")
       .withIndex("by_phone", (q) => q.eq("phone", phone))
       .first();
@@ -33,11 +33,10 @@ export const authenticateUser = internalMutation({
   },
 });
 
-// Send OTP via Twilio Verify
-export const sendOtp = mutation({
+// Internal: invalidate old OTP sessions and create new one
+export const prepareOtpSession = internalMutation({
   args: { phone: v.string() },
   handler: async (ctx, { phone }) => {
-    // Invalidate old sessions
     const existing = await ctx.db
       .query("otpSessions")
       .withIndex("by_phone", (q) => q.eq("phone", phone))
@@ -50,9 +49,21 @@ export const sendOtp = mutation({
       expiresAt: Date.now() + 10 * 60 * 1000,
       verified: false,
     });
+  },
+});
 
-    await ctx.scheduler.runAfter(0, internal.twilio.sendVerification, { phone });
-    return { success: true };
+// Send OTP — action (errors propagate to client)
+export const sendOtp = action({
+  args: { phone: v.string() },
+  handler: async (ctx, { phone }): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await ctx.runMutation(internal.auth.prepareOtpSession, { phone });
+      await ctx.runAction(internal.twilio.sendVerification, { phone });
+      return { success: true };
+    } catch (err: any) {
+      console.error(`sendOtp failed for ${phone}:`, err.message);
+      return { success: false, error: err.message ?? "Failed to send code. Check your number." };
+    }
   },
 });
 

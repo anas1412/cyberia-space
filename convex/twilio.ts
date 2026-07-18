@@ -14,9 +14,15 @@ const VERIFY_SERVICE_SID = process.env.TWILIO_VERIFY_SERVICE_SID!;
 export const sendVerification = internalAction({
   args: { phone: v.string() },
   handler: async (_, { phone }) => {
-    await client.verify.v2
-      .services(VERIFY_SERVICE_SID)
-      .verifications.create({ to: phone, channel: "sms" });
+    try {
+      const verification = await client.verify.v2
+        .services(VERIFY_SERVICE_SID)
+        .verifications.create({ to: phone, channel: "sms" });
+      console.log(`Twilio verification sent to ${phone}, status: ${verification.status}`);
+    } catch (err: any) {
+      console.error(`Twilio sendVerification failed for ${phone}:`, err.message);
+      throw err;
+    }
   },
 });
 
