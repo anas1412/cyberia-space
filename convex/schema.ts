@@ -69,6 +69,7 @@ export default defineSchema({
     participantIds: v.array(v.id("users")),
     lastMessageAt: v.number(),
     lastMessageText: v.optional(v.string()),
+    unreadBy: v.optional(v.record(v.string(), v.float64())),
   }).index("by_participants", ["participantIds"]),
 
   directMessages: defineTable({
@@ -79,7 +80,8 @@ export default defineSchema({
     text: v.string(),
     timestamp: v.number(),
     expiresAt: v.number(),
-    readBy: v.array(v.id("users")),
+    read: v.optional(v.boolean()),
+    readBy: v.optional(v.array(v.id("users"))),
     mentions: v.array(v.string()),
   })
     .index("by_conversation_time", ["conversationId", "timestamp"])

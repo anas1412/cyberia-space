@@ -41,22 +41,11 @@ export const listForUser = query({
       mine.map(async (conv) => {
         const otherId = conv.participantIds.find((id) => id !== userId);
         const other = otherId ? (await ctx.db.get(otherId) as any) : null;
-        const unread = await ctx.db
-          .query("directMessages")
-          .withIndex("by_conversation_time", (q) =>
-            q.eq("conversationId", conv._id)
-          )
-          .filter((q) =>
-            q.and(
-              q.neq(q.field("userId"), userId),
-              q.eq(q.field("readBy"), [])
-            )
-          )
-          .take(99);
+        const unreadCount = (conv.unreadBy?.[userId]) ?? 0;
         return {
           ...conv,
           other: other ? { handle: other.handle, avatarColor: other.avatarColor, _id: other._id } : null,
-          unreadCount: unread.length,
+          unreadCount,
         };
       })
     );
@@ -105,13 +94,21 @@ export const send = mutation({
       text: text.trim(),
       timestamp: now,
       expiresAt: now + TTL_MS,
-      readBy: [userId],
+      read: false,
       mentions,
     });
 
+    // Increment unread count for all participants except sender
+    const current = conv.unreadBy ?? {};
+    for (const pid of conv.participantIds) {
+      if (pid !== userId) {
+        current[pid] = (current[pid] || 0) + 1;
+      }
+    }
     await ctx.db.patch(conversationId, {
       lastMessageAt: now,
       lastMessageText: text.slice(0, 60),
+      unreadBy: current,
     });
 
     // Notify the other participant
@@ -144,9 +141,16 @@ export const markRead = mutation({
       .collect();
 
     for (const msg of unread) {
-      if (!msg.readBy.includes(userId)) {
-        await ctx.db.patch(msg._id, { readBy: [...msg.readBy, userId] });
+      if (!msg.read) {
+        await ctx.db.patch(msg._id, { read: true });
       }
+    }
+    // Reset unread count for this user
+    const conv = await ctx.db.get(conversationId);
+    if (conv?.unreadBy) {
+      const updated = { ...conv.unreadBy };
+      delete updated[userId];
+      await ctx.db.patch(conversationId, { unreadBy: updated });
     }
   },
 });

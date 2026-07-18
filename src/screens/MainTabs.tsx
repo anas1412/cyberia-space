@@ -29,7 +29,7 @@ function TabIcon({ Icon, label, focused, badge }: {
 export default function MainTabs() {
   const { userId } = useAuth();
   const dms = useQuery(api.dms.listForUser, userId ? { userId: userId as any } : 'skip');
-  const dmUnread = dms ? dms.reduce((sum: number, d: any) => sum + (d.unreadCount || 0), 0) : 0;
+  const dmUnread = dms ? dms.filter((d: any) => d.unreadCount > 0).length : 0;
 
   return (
     <Tab.Navigator

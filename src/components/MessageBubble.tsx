@@ -149,7 +149,6 @@ const s = StyleSheet.create({
     marginLeft: 28 + spacing.sm, // avatar width + gap
   },
   timeSelf: {
-    marginRight: 28 + spacing.sm,
     textAlign: 'right',
   },
 });

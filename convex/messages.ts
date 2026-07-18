@@ -52,27 +52,6 @@ export const send = mutation({
       mentions,
     });
 
-    // Notify mentioned users
-    for (const mention of mentions) {
-      const mentionedUser = await ctx.db
-        .query("users")
-        .withIndex("by_handle", (q) => q.eq("handle", mention.replace("@", "")))
-        .first();
-      if (mentionedUser && mentionedUser._id !== userId) {
-        await ctx.db.insert("notifications", {
-          userId: mentionedUser._id,
-          type: "mention",
-          fromUserId: userId,
-          fromHandle: user.handle,
-          roomId,
-          text: text.slice(0, 80),
-          read: false,
-          timestamp: now,
-            expiresAt: now + 90 * 24 * 60 * 60 * 1000,
-        });
-      }
-    }
-
     // Notify private room owner if they are not present
     if (room.type === "private" && room.ownerId !== userId) {
       const ownerPresence = await ctx.db

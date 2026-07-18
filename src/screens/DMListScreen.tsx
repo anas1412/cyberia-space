@@ -52,24 +52,25 @@ export default function DMListScreen({ navigation }: any) {
             activeOpacity={0.8}>
             <View>
               <DiceBearAvatar seed={item.other?.handle ?? '?'} style="croodles-neutral" size={48} bgColor={item.other?.avatarColor} />
-              {item.unreadCount > 0 && <View style={s.unreadDot} />}
             </View>
             <View style={s.info}>
               <View style={s.topRow}>
-                <Text style={[s.handle, item.unreadCount > 0 && s.handleUnread]}>
-                  @{item.other?.handle ?? '…'}
-                </Text>
+                <View style={s.handleRow}>
+                  <Text style={[s.handle, item.unreadCount > 0 && s.handleUnread]}>
+                    @{item.other?.handle ?? '…'}
+                  </Text>
+                  {item.unreadCount > 0 && (
+                    <View style={s.badge}>
+                      <Text style={s.badgeText}>{item.unreadCount > 99 ? '99+' : item.unreadCount}</Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={s.time}>{formatRelative(item.lastMessageAt)}</Text>
               </View>
               <Text style={[s.preview, item.unreadCount > 0 && s.previewUnread]} numberOfLines={1}>
                 {item.lastMessageText || 'No messages yet'}
               </Text>
             </View>
-            {item.unreadCount > 0 && (
-              <View style={s.badge}>
-                <Text style={s.badgeText}>{item.unreadCount > 99 ? '99+' : item.unreadCount}</Text>
-              </View>
-            )}
           </TouchableOpacity>
         )}
         ListEmptyComponent={
@@ -111,6 +112,7 @@ const s = StyleSheet.create({
   },
   info: { flex: 1 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  handleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   handle: { fontSize: fontSize.title, fontWeight: fontWeight.semibold, color: colors.text },
   handleUnread: { fontWeight: fontWeight.bold },
   time: { fontSize: fontSize.caption, color: colors.textMuted },
