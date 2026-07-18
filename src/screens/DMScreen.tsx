@@ -77,9 +77,13 @@ export default function DMScreen({ route, navigation }: any) {
             <MessageBubble msg={item} isSelf={item.userId === userId} isConsec={item.isConsec} showHandle={false} showAvatar={item.showAvatar} showTime={item.showTime} />
           )}
           ListEmptyComponent={
-            <EmptyState title="Start the conversation" subtitle="Messages here are saved permanently" />
+            <EmptyState title="Start the conversation" subtitle="Messages vanish after 24 hours" />
           }
         />
+
+        <View style={s.ttlBar}>
+          <Text style={s.ttlText}>Messages vanish after 24 hours</Text>
+        </View>
 
         <ChatInput
           value={input}
@@ -96,4 +100,7 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   flex: { flex: 1 },
   list: { padding: spacing.lg, gap: 2, paddingBottom: spacing.sm },
+
+  ttlBar: { paddingVertical: spacing.sm, paddingHorizontal: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border, alignItems: 'center' as const },
+  ttlText: { fontSize: fontSize.caption, color: colors.textMuted },
 });

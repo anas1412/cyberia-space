@@ -193,7 +193,7 @@ export default function RoomScreen({ route, navigation }: any) {
         />
 
         <View style={s.ttlBar}>
-          <Text style={s.ttlText}>Messages vanish after 24 hours</Text>
+          <Text style={s.ttlText}>Messages vanish after 24 hours or if you leave</Text>
         </View>
 
         <ChatInput
