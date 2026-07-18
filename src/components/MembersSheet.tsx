@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { X, UserMinus, Ban } from 'lucide-react-native';
+import { X, UserMinus, Ban, Crown } from 'lucide-react-native';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
@@ -13,10 +13,11 @@ interface Props {
   roomId: any;
   userId: string;
   isOwner: boolean;
+  ownerId?: string;
   members: any[];
 }
 
-export default function MembersSheet({ visible, onClose, roomId, userId, isOwner, members }: Props) {
+export default function MembersSheet({ visible, onClose, roomId, userId, isOwner, ownerId, members }: Props) {
   const kickUser = useMutation(api.rooms.kick);
   const banUser = useMutation(api.rooms.ban);
 
@@ -35,13 +36,17 @@ export default function MembersSheet({ visible, onClose, roomId, userId, isOwner
         ) : (
           members.map((p: any) => {
             const isSelf = p.userId === userId;
+            const isRoomOwner = ownerId && p.userId === ownerId;
             return (
               <View key={p.userId} style={s.row}>
                 <View style={s.user}>
                   <DiceBearAvatar seed={p.handle} style="croodles-neutral" size={36} bgColor={p.avatarColor} />
                   <Text style={s.handle}>@{p.handle}{isSelf ? ' (you)' : ''}</Text>
                 </View>
-                {isOwner && !isSelf && (
+                {isRoomOwner && (
+                  <Crown size={16} color="#F0B90B" strokeWidth={2} />
+                )}
+                {!isRoomOwner && isOwner && !isSelf && (
                   <View style={s.actions}>
                     <TouchableOpacity style={s.kickBtn} onPress={() => kickUser({ roomId, ownerId: userId as any, userId: p.userId })}>
                       <UserMinus size={14} color={colors.textSecondary} strokeWidth={2} />

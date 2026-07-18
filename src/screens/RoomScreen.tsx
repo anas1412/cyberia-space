@@ -221,6 +221,7 @@ export default function RoomScreen({ route, navigation }: any) {
         roomId={roomId}
         userId={userId as string}
         isOwner={!!isOwner}
+        ownerId={room?.ownerId}
         members={presence as any[]}
       />
     </SafeAreaView>
