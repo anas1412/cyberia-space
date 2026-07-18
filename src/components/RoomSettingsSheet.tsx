@@ -36,13 +36,15 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
   const revokeInvite = useMutation(api.rooms.revokeInvite);
   const createGuestLink = useMutation(api.rooms.createGuestLink);
   const revokeGuestLink = useMutation(api.rooms.revokeGuestLink);
+  const invitesRaw = useQuery(api.rooms.listInvites, roomId ? { roomId, userId: userId as any } : 'skip') ?? [];
+  const guestLinksRaw = useQuery(api.rooms.listGuestLinks, roomId ? { roomId, userId: userId as any } : 'skip') ?? [];
   const invites = [
     ...localInvites,
-    ...(useQuery(api.rooms.listInvites, roomId ? { roomId, userId: userId as any } : 'skip') ?? []).filter((inv: any) => !localInvites.some((l: any) => l._id === inv._id)),
+    ...invitesRaw.filter((inv: any) => !localInvites.some((l: any) => l._id === inv._id)),
   ];
   const guestLinks = [
     ...localGuestLinks,
-    ...(useQuery(api.rooms.listGuestLinks, roomId ? { roomId, userId: userId as any } : 'skip') ?? []).filter((gl: any) => !localGuestLinks.some((l: any) => l._id === gl._id)),
+    ...guestLinksRaw.filter((gl: any) => !localGuestLinks.some((l: any) => l._id === gl._id)),
   ];
   const [inviteMulti, setInviteMulti] = useState(false);
   const [inviteExpiry, setInviteExpiry] = useState(24);
