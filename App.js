@@ -15,7 +15,7 @@ import NewRoomScreen from './src/screens/NewRoomScreen';
 import NewDMScreen   from './src/screens/NewDMScreen';
 import GuestScreen   from './src/screens/GuestScreen';
 
-const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL ?? 'https://efficient-cormorant-584.convex.cloud');
+const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL ?? 'https://honorable-armadillo-17.eu-west-1.convex.cloud');
 const Stack  = createNativeStackNavigator();
 
 const linking = {
