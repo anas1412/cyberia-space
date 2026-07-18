@@ -32,9 +32,10 @@ export default function AuthScreen({ navigation }: any) {
   async function handleSendOtp() {
     const cleaned = phone.replace(/\s/g, '');
     if (!cleaned.startsWith('+')) { setError('Include your country code, e.g. +1'); return; }
+    if (cleaned.length < 8) { setError('Phone number too short. Include country code.'); return; }
     setLoading(true); setError('');
     try { await sendOtp({ phone: cleaned }); setStep('otp'); }
-    catch (e: any) { setError(e.message); }
+    catch (e: any) { setError(e.data?.message ?? 'Failed to send code. Check your number.'); }
     setLoading(false);
   }
 
