@@ -28,8 +28,7 @@ export const sendOtp = mutation({
       verified: false,
     });
 
-    // TODO: await ctx.scheduler.runAfter(0, internal.twilio.sendSms, { phone, code })
-    console.log(`[DEV] OTP for ${phone}: ${code}`);
+    await ctx.scheduler.runAfter(0, internal.twilio.sendSms, { phone, code });
     return { success: true };
   },
 });
