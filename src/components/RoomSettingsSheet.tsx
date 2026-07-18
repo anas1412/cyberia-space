@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { X, Trash2, UserMinus, Ban } from 'lucide-react-native';
+import { X, Trash2 } from 'lucide-react-native';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import BottomSheet from './BottomSheet';
 import Input from './Input';
 import Button from './Button';
-import DiceBearAvatar from './DiceBearAvatar';
 
 interface Props {
   visible: boolean;
@@ -28,11 +27,8 @@ export default function RoomSettingsSheet({ visible, onClose, roomId, userId, ro
 
   const updateRoom = useMutation(api.rooms.update);
   const deleteRoom = useMutation(api.rooms.remove);
-  const kickUser = useMutation(api.rooms.kick);
-  const banUser = useMutation(api.rooms.ban);
   const unbanUser = useMutation(api.rooms.unban);
   const bans = useQuery(api.rooms.listBans, { roomId }) ?? [];
-  const presence = useQuery(api.rooms.getPresence, { roomId }) ?? [];
 
   useEffect(() => {
     if (visible) {
@@ -54,8 +50,6 @@ export default function RoomSettingsSheet({ visible, onClose, roomId, userId, ro
     await deleteRoom({ roomId, userId: userId as any });
     onClose();
   }
-
-  const memberList = presence as any[];
 
   return (
     <BottomSheet visible={visible} onClose={onClose}>
@@ -101,46 +95,6 @@ export default function RoomSettingsSheet({ visible, onClose, roomId, userId, ro
           <Button label="Save changes" onPress={handleSave} loading={saving} loadingLabel="Saving…" disabled={!name.trim()} />
         </View>
 
-        {/* ── Members ── */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Members · {memberList.length}</Text>
-          {memberList.length === 0 ? (
-            <Text style={s.empty}>No one here right now</Text>
-          ) : (
-            memberList.map((p: any) => {
-              const isOwner = p.userId === userId;
-              return (
-                <View key={p.userId} style={s.memberRow}>
-                  <View style={s.memberInfo}>
-                    <DiceBearAvatar seed={p.handle} style="croodles-neutral" size={32} bgColor={p.avatarColor} />
-                    <View>
-                      <Text style={s.memberName}>@{p.handle}{isOwner ? ' (you)' : ''}</Text>
-                    </View>
-                  </View>
-                  {!isOwner && (
-                    <View style={s.memberActions}>
-                      <TouchableOpacity
-                        style={s.actionBtn}
-                        onPress={() => kickUser({ roomId, ownerId: userId as any, userId: p.userId })}
-                      >
-                        <UserMinus size={14} color={colors.textSecondary} strokeWidth={2} />
-                        <Text style={s.actionLabel}>Kick</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[s.actionBtn, s.banBtn]}
-                        onPress={() => banUser({ roomId, ownerId: userId as any, userId: p.userId })}
-                      >
-                        <Ban size={14} color={colors.error} strokeWidth={2} />
-                        <Text style={[s.actionLabel, { color: colors.error }]}>Ban</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              );
-            })
-          )}
-        </View>
-
         {/* ── Banned ── */}
         <View style={s.section}>
           <Text style={s.sectionTitle}>Banned · {(bans as any[]).length}</Text>
@@ -148,8 +102,8 @@ export default function RoomSettingsSheet({ visible, onClose, roomId, userId, ro
             <Text style={s.empty}>No banned users</Text>
           ) : (
             (bans as any[]).map((b: any) => (
-              <View key={b._id} style={s.memberRow}>
-                <Text style={s.memberName}>@{b.handle}</Text>
+              <View key={b._id} style={s.banRow}>
+                <Text style={s.banHandle}>@{b.handle}</Text>
                 <TouchableOpacity onPress={() => unbanUser({ roomId, ownerId: userId as any, userId: b.userId })} style={s.unbanBtn}>
                   <Text style={s.unbanText}>Unban</Text>
                 </TouchableOpacity>
@@ -233,24 +187,13 @@ const s = StyleSheet.create({
 
   empty: { color: colors.textMuted, fontSize: fontSize.body, paddingVertical: spacing.sm },
 
-  // Members
-  memberRow: {
+  // Banned — reuse styles from MembersSheet
+  banRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md,
+    backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, paddingHorizontal: spacing.lg,
     borderWidth: 1, borderColor: colors.border,
   },
-  memberInfo: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  memberName: { fontSize: fontSize.body, color: colors.text, fontWeight: fontWeight.semibold },
-  memberActions: { flexDirection: 'row', gap: spacing.sm },
-  actionBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    borderRadius: radius.sm, backgroundColor: colors.elevated,
-  },
-  actionLabel: { fontSize: fontSize.caption, color: colors.textSecondary, fontWeight: fontWeight.medium },
-  banBtn: { backgroundColor: 'rgba(244,75,66,0.1)' },
-
-  // Banned
+  banHandle: { fontSize: fontSize.body, color: colors.text, fontWeight: fontWeight.semibold },
   unbanBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.sm, backgroundColor: colors.accentBg },
   unbanText: { color: colors.accent, fontSize: fontSize.small, fontWeight: fontWeight.semibold },
 

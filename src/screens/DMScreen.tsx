@@ -11,6 +11,7 @@ import DiceBearAvatar from '../components/DiceBearAvatar';
 import MessageBubble from '../components/MessageBubble';
 import EmptyState from '../components/EmptyState';
 import ChatInput from '../components/ChatInput';
+import Loading from '../components/Loading';
 
 export default function DMScreen({ route, navigation }: any) {
   const { conversationId } = route.params;
@@ -18,18 +19,21 @@ export default function DMScreen({ route, navigation }: any) {
   const [input, setInput] = useState('');
   const listRef = useRef<FlatList>(null);
 
-  const messages = useQuery(api.dms.subscribeMessages, { conversationId }) ?? [];
+  const messages = useQuery(api.dms.subscribeMessages, { conversationId });
   const sendMsg = useMutation(api.dms.send);
   const markRead = useMutation(api.dms.markRead);
 
-  const other = messages.find((m: any) => m.userId !== userId);
+  useEffect(() => {
+    if (messages && messages.length > 0) setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+  }, [messages]);
 
   useEffect(() => {
-    if (messages.length > 0) setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
-  }, [messages.length]);
-  useEffect(() => {
-    if (userId) markRead({ conversationId, userId: userId as any });
-  }, [messages.length, userId]);
+    if (userId && messages) markRead({ conversationId, userId: userId as any });
+  }, [messages, userId]);
+
+  if (messages === undefined) return <SafeAreaView style={s.container} edges={['top']}><Header title="..." onBack={() => navigation.goBack()} /><Loading /></SafeAreaView>;
+
+  const other = messages.find((m: any) => m.userId !== userId);
 
   async function handleSend() {
     if (!input.trim() || !userId) return;

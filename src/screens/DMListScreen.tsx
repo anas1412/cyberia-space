@@ -10,6 +10,7 @@ import DiceBearAvatar from '../components/DiceBearAvatar';
 import Header from '../components/Header';
 import EmptyState from '../components/EmptyState';
 import SearchBar from '../components/SearchBar';
+import Loading from '../components/Loading';
 
 function formatRelative(ts: number) {
   const diff = Date.now() - ts;
@@ -21,8 +22,10 @@ function formatRelative(ts: number) {
 
 export default function DMListScreen({ navigation }: any) {
   const { userId } = useAuth();
-  const dms = useQuery(api.dms.listForUser, userId ? { userId: userId as any } : 'skip') ?? [];
+  const dms = useQuery(api.dms.listForUser, userId ? { userId: userId as any } : 'skip');
   const [query, setQuery] = useState('');
+
+  if (dms === undefined) return <SafeAreaView style={s.container} edges={['top']}><Header title="Messages" /><Loading /></SafeAreaView>;
 
   const filtered = query.trim()
     ? dms.filter((d: any) => d.other?.handle?.toLowerCase().includes(query.toLowerCase()))

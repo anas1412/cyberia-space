@@ -117,7 +117,7 @@ export const join = mutation({
       .query("roomBans")
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
       .first();
-    if (ban) throw new Error("You are banned from this room");
+    if (ban) return { error: "You are banned from this room" };
 
     if (existing) {
       await ctx.db.patch(existing._id, { lastPing: Date.now() });

@@ -11,11 +11,14 @@ import Header from '../components/Header';
 import EmptyState from '../components/EmptyState';
 import DiceBearAvatar from '../components/DiceBearAvatar';
 import SearchBar from '../components/SearchBar';
+import Loading from '../components/Loading';
 
 export default function RoomsListScreen({ navigation }: any) {
   const { user } = useAuth();
-  const rooms = useQuery(api.rooms.listPublic) ?? [];
+  const rooms = useQuery(api.rooms.listPublic);
   const [query, setQuery] = useState('');
+
+  if (rooms === undefined) return <SafeAreaView style={s.container} edges={['top']}><Header title="Rooms" /><Loading /></SafeAreaView>;
 
   const filtered = query.trim()
     ? rooms.filter((r: any) => r.name.toLowerCase().includes(query.toLowerCase()) || r.topic?.toLowerCase().includes(query.toLowerCase()))
@@ -41,12 +44,24 @@ export default function RoomsListScreen({ navigation }: any) {
         ListHeaderComponent={
           <View style={s.listHead}>
             <SearchBar value={query} onChangeText={setQuery} placeholder="Search rooms…" />
-            {myRoom && <Text style={[sectionLabel, { marginBottom: spacing.sm }]}>My Room</Text>}
+            {!query.trim() && !myRoom && (
+              <View>
+                <Text style={[sectionLabel, { marginBottom: spacing.sm }]}>My Room</Text>
+                <TouchableOpacity style={[card, s.createCard]} onPress={() => navigation.navigate('NewRoom')} activeOpacity={0.7}>
+                  <View style={s.createIcon}><Text style={s.createIconText}>+</Text></View>
+                  <View>
+                    <Text style={s.createTitle}>Create your room</Text>
+                    <Text style={s.createSub}>One room per account</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
+            {!query.trim() && myRoom && <Text style={[sectionLabel, { marginBottom: spacing.sm }]}>My Room</Text>}
           </View>
         }
         renderItem={({ item, index }: any) => {
           const isMine = item.ownerHandle === user?.handle;
-          const showAllLabel = myRoom && index === 1;
+          const showAllLabel = !query.trim() && index === (myRoom ? 1 : 0);
           return (
             <View key={item._id}>
               {showAllLabel && <Text style={[sectionLabel, { marginTop: spacing.md, marginBottom: spacing.sm }]}>All Rooms</Text>}
@@ -105,4 +120,17 @@ const s = StyleSheet.create({
   roomOwner: { fontSize: fontSize.caption, color: colors.textMuted, marginTop: 2 },
   roomMeta: {},
   memberCount: { fontSize: fontSize.caption, color: colors.textMuted },
+
+  createCard: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    borderStyle: 'dashed', borderColor: colors.borderStrong,
+  },
+  createIcon: {
+    width: 40, height: 40, borderRadius: radius.sm,
+    backgroundColor: colors.accentBg, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(232,168,64,0.2)',
+  },
+  createIconText: { fontSize: 20, color: colors.accent },
+  createTitle: { fontSize: fontSize.title, fontWeight: fontWeight.semibold, color: colors.accent },
+  createSub: { fontSize: fontSize.small, color: colors.textSecondary, marginTop: 2 },
 });

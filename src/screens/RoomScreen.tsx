@@ -1,16 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, KeyboardAvoidingView, Platform, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import { Ban } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
-import { colors, spacing, radius, fontSize } from '../lib/theme';
+import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import Header from '../components/Header';
 import DiceBearAvatar from '../components/DiceBearAvatar';
 import MessageBubble from '../components/MessageBubble';
 import SystemMessage from '../components/SystemMessage';
 import ChatInput from '../components/ChatInput';
 import RoomSettingsSheet from '../components/RoomSettingsSheet';
+import MembersSheet from '../components/MembersSheet';
+import Loading from '../components/Loading';
 
 function fmtTime(ts: number) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -23,8 +26,10 @@ export default function RoomScreen({ route, navigation }: any) {
   const [joinTime] = useState(() => Date.now());
   const [events, setEvents] = useState<any[]>([]);
   const [sheetVisible, setSheetVisible] = useState(false);
+  const [membersVisible, setMembersVisible] = useState(false);
   const prevPresence = useRef<Set<string>>(new Set());
   const hasJoined = useRef(false);
+  const [banned, setBanned] = useState(false);
   const handleCache = useRef<Map<string, string>>(new Map());
   const listRef = useRef<FlatList>(null);
 
@@ -35,15 +40,23 @@ export default function RoomScreen({ route, navigation }: any) {
   const joinRoom = useMutation(api.rooms.join);
   const leaveRoom = useMutation(api.rooms.leave);
   const ping = useMutation(api.rooms.ping);
-  const kickUser = useMutation(api.rooms.kick);
-  const banUser = useMutation(api.rooms.ban);
 
   useEffect(() => {
     if (!userId) return;
-    joinRoom({ userId: userId as any, roomId });
+    joinRoom({ userId: userId as any, roomId }).then((res: any) => {
+      if (res?.error) setBanned(true);
+    });
     const interval = setInterval(() => ping({ userId: userId as any, roomId }), 30000);
     return () => { clearInterval(interval); leaveRoom({ userId: userId as any, roomId }); };
   }, [userId, roomId]);
+
+  // Detect if kicked (no longer in presence)
+  useEffect(() => {
+    if (hasJoined.current && userId) {
+      const inPresence = (presence as any[]).some((p: any) => p.userId === userId);
+      if (!inPresence) navigation.goBack();
+    }
+  }, [presence, userId]);
 
   // Track presence changes → system events
   useEffect(() => {
@@ -120,21 +133,14 @@ export default function RoomScreen({ route, navigation }: any) {
     });
   });
 
-  const isOwner = room && userId && room.ownerId === userId;
-
   // Navigate away if room was deleted
   useEffect(() => {
     if (room === null) navigation.goBack();
   }, [room]);
 
-  function handlePresenceTap(p: any) {
-    if (!isOwner) return;
-    Alert.alert(`@${p.handle}`, undefined, [
-      { text: 'Kick', onPress: () => kickUser({ roomId, ownerId: userId as any, userId: p.userId }) },
-      { text: 'Ban', style: 'destructive', onPress: () => banUser({ roomId, ownerId: userId as any, userId: p.userId }) },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  }
+  if (room === undefined) return <SafeAreaView style={s.container} edges={['top']}><Header title="..." onBack={() => navigation.goBack()} /><Loading /></SafeAreaView>;
+
+  const isOwner = room && userId && room.ownerId === userId;
 
   async function handleSend() {
     if (!input.trim() || !userId) return;
@@ -143,21 +149,31 @@ export default function RoomScreen({ route, navigation }: any) {
   }
 
   const presElements = (
-    <View style={s.presRow}>
+    <TouchableOpacity onPress={() => setMembersVisible(true)} style={s.presRow} activeOpacity={0.7}>
       {(presence as any[]).slice(0, 4).map((p: any) => (
-        <TouchableOpacity key={p.userId} onPress={() => handlePresenceTap(p)} style={[s.presAvWrap, { marginLeft: -8 }]}>
+        <View key={p.userId} style={[s.presAvWrap, { marginLeft: -8 }]}>
           <DiceBearAvatar seed={p.handle} style="croodles-neutral" size={26} bgColor={p.avatarColor} />
-        </TouchableOpacity>
+        </View>
       ))}
       {presence.length > 4 && <Text style={s.presMore}>+{presence.length - 4}</Text>}
-    </View>
+    </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <Header title={room?.name ?? name} onBack={() => navigation.goBack()} onTitlePress={isOwner ? () => setSheetVisible(true) : undefined} rightContent={presElements} />
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.flex}>
+      {banned ? (
+        <View style={s.bannedWrap}>
+          <Ban size={48} color={colors.error} strokeWidth={1.5} />
+          <Text style={s.bannedTitle}>You are banned</Text>
+          <Text style={s.bannedSub}>You can no longer access this room</Text>
+          <TouchableOpacity style={s.bannedBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+            <Text style={s.bannedBtnText}>Go back</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.flex}>
         <FlatList
           ref={listRef}
           data={items}
@@ -187,6 +203,7 @@ export default function RoomScreen({ route, navigation }: any) {
           placeholder={`Message #${room?.name ?? '...'}`}
         />
       </KeyboardAvoidingView>
+      )}
 
       <RoomSettingsSheet
         visible={sheetVisible}
@@ -197,6 +214,14 @@ export default function RoomScreen({ route, navigation }: any) {
         roomTopic={room?.topic}
         roomType={room?.type}
         createdAt={room?.createdAt}
+      />
+      <MembersSheet
+        visible={membersVisible}
+        onClose={() => setMembersVisible(false)}
+        roomId={roomId}
+        userId={userId as string}
+        isOwner={!!isOwner}
+        members={presence as any[]}
       />
     </SafeAreaView>
   );
@@ -217,4 +242,10 @@ const s = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: colors.border, alignItems: 'center',
   },
   ttlText: { fontSize: fontSize.caption, color: colors.textMuted },
+
+  bannedWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg, padding: spacing.xxl },
+  bannedTitle: { fontSize: fontSize.header, fontWeight: fontWeight.bold, color: colors.text },
+  bannedSub: { fontSize: fontSize.body, color: colors.textSecondary, textAlign: 'center' },
+  bannedBtn: { backgroundColor: colors.surface, borderRadius: radius.md, paddingHorizontal: spacing.xxl, paddingVertical: spacing.md, borderWidth: 1, borderColor: colors.border },
+  bannedBtnText: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
 });
