@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, TextInput } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
+import { useResponsive } from '../lib/responsive';
 import { COUNTRIES } from '../lib/countries';
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
 export default function PhoneInput({ value, onChangeText, onSubmitEditing }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const { isDesktop } = useResponsive();
 
   const selected = COUNTRIES.find(c => value.startsWith(c.dial)) ?? COUNTRIES[0];
   const localNumber = value.startsWith(selected.dial) ? value.slice(selected.dial.length) : value;
@@ -57,9 +59,9 @@ export default function PhoneInput({ value, onChangeText, onSubmitEditing }: Pro
       />
 
       <Modal visible={pickerOpen} animationType="slide" transparent onRequestClose={() => setPickerOpen(false)}>
-        <View style={s.overlay}>
+        <View style={[s.overlay, isDesktop && s.overlayDesktop]}>
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setPickerOpen(false)} />
-          <View style={s.sheet}>
+          <View style={[s.sheet, isDesktop && s.sheetDesktop]}>
             <View style={s.searchWrap}>
               <TextInput
                 style={s.searchInput}
@@ -123,11 +125,20 @@ const s = StyleSheet.create({
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
+  overlayDesktop: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   sheet: {
     backgroundColor: colors.bg,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     maxHeight: '70%',
+  },
+  sheetDesktop: {
+    width: 400,
+    borderRadius: radius.xl,
+    maxHeight: '60%',
   },
   searchWrap: {
     padding: spacing.md,
