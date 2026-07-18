@@ -36,6 +36,8 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
   const revokeInvite = useMutation(api.rooms.revokeInvite);
   const createGuestLink = useMutation(api.rooms.createGuestLink);
   const revokeGuestLink = useMutation(api.rooms.revokeGuestLink);
+  const [localGuestLinks, setLocalGuestLinks] = useState<any[]>([]);
+  const [localInvites, setLocalInvites] = useState<any[]>([]);
   const invitesRaw = useQuery(api.rooms.listInvites, roomId ? { roomId, userId: userId as any } : 'skip') ?? [];
   const guestLinksRaw = useQuery(api.rooms.listGuestLinks, roomId ? { roomId, userId: userId as any } : 'skip') ?? [];
   const invites = [
@@ -48,8 +50,6 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
   ];
   const [inviteMulti, setInviteMulti] = useState(false);
   const [inviteExpiry, setInviteExpiry] = useState(24);
-  const [localGuestLinks, setLocalGuestLinks] = useState<any[]>([]);
-  const [localInvites, setLocalInvites] = useState<any[]>([]);
 
   useEffect(() => {
     if (visible) {
