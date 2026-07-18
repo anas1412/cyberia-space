@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from 'convex/react';
@@ -9,6 +9,7 @@ import { card, sectionLabel } from '../lib/sharedStyles';
 import DiceBearAvatar from '../components/DiceBearAvatar';
 import Header from '../components/Header';
 import EmptyState from '../components/EmptyState';
+import SearchBar from '../components/SearchBar';
 
 function formatRelative(ts: number) {
   const diff = Date.now() - ts;
@@ -21,18 +22,26 @@ function formatRelative(ts: number) {
 export default function DMListScreen({ navigation }: any) {
   const { userId } = useAuth();
   const dms = useQuery(api.dms.listForUser, userId ? { userId: userId as any } : 'skip') ?? [];
+  const [query, setQuery] = useState('');
+
+  const filtered = query.trim()
+    ? dms.filter((d: any) => d.other?.handle?.toLowerCase().includes(query.toLowerCase()))
+    : dms;
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <Header title="Messages" rightLabel="New" onRightPress={() => navigation.navigate('NewDM')} />
 
       <FlatList
-        data={dms}
+        data={filtered}
         keyExtractor={(item: any) => item._id}
         contentContainerStyle={s.list}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          dms.length > 0 ? <Text style={[sectionLabel, { marginBottom: spacing.sm }]}>Direct Messages</Text> : null
+          <View>
+            <SearchBar value={query} onChangeText={setQuery} placeholder="Search messages…" />
+            {dms.length > 0 && <Text style={[sectionLabel, { marginTop: spacing.md, marginBottom: spacing.sm }]}>Direct Messages</Text>}
+          </View>
         }
         renderItem={({ item }: any) => (
           <TouchableOpacity style={[card, s.dmCard]}
@@ -61,12 +70,20 @@ export default function DMListScreen({ navigation }: any) {
           </TouchableOpacity>
         )}
         ListEmptyComponent={
-          <EmptyState
-            title="No messages yet"
-            subtitle="Start a conversation with anyone"
-            actionLabel="New message"
-            onAction={() => navigation.navigate('NewDM')}
-          />
+          query.trim() ? (
+            <View style={{ paddingTop: 40 }}>
+              <Text style={{ color: colors.textSecondary, fontSize: 15, textAlign: 'center' }}>
+                No results for "{query}"
+              </Text>
+            </View>
+          ) : (
+            <EmptyState
+              title="No messages yet"
+              subtitle="Start a conversation with anyone"
+              actionLabel="New message"
+              onAction={() => navigation.navigate('NewDM')}
+            />
+          )
         }
       />
     </SafeAreaView>

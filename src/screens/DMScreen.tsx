@@ -56,7 +56,7 @@ export default function DMScreen({ route, navigation }: any) {
       <Header
         title={`@${other?.handle ?? '…'}`}
         onBack={() => navigation.goBack()}
-        leftContent={
+        rightContent={
           other ? <DiceBearAvatar seed={other.handle} style="croodles-neutral" size={36} bgColor={other.avatarColor} /> : undefined
         }
       />

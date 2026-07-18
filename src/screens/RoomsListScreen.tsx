@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Star } from 'lucide-react-native';
@@ -10,15 +10,19 @@ import { card, sectionLabel } from '../lib/sharedStyles';
 import Header from '../components/Header';
 import EmptyState from '../components/EmptyState';
 import DiceBearAvatar from '../components/DiceBearAvatar';
+import SearchBar from '../components/SearchBar';
 
 export default function RoomsListScreen({ navigation }: any) {
   const { user } = useAuth();
   const rooms = useQuery(api.rooms.listPublic) ?? [];
+  const [query, setQuery] = useState('');
 
-  const myRoom = rooms.find((r: any) => r.ownerHandle === user?.handle);
-  const otherRooms = rooms.filter((r: any) => r.ownerHandle !== user?.handle);
+  const filtered = query.trim()
+    ? rooms.filter((r: any) => r.name.toLowerCase().includes(query.toLowerCase()) || r.topic?.toLowerCase().includes(query.toLowerCase()))
+    : rooms;
 
-  // Merge: my room first, then others
+  const myRoom = filtered.find((r: any) => r.ownerHandle === user?.handle);
+  const otherRooms = filtered.filter((r: any) => r.ownerHandle !== user?.handle);
   const sorted = myRoom ? [myRoom, ...otherRooms] : otherRooms;
 
   return (
@@ -36,7 +40,8 @@ export default function RoomsListScreen({ navigation }: any) {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={s.listHead}>
-            {myRoom && <Text style={sectionLabel}>My Room</Text>}
+            <SearchBar value={query} onChangeText={setQuery} placeholder="Search rooms…" />
+            {myRoom && <Text style={[sectionLabel, { marginBottom: spacing.sm }]}>My Room</Text>}
           </View>
         }
         renderItem={({ item, index }: any) => {
@@ -44,7 +49,7 @@ export default function RoomsListScreen({ navigation }: any) {
           const showAllLabel = myRoom && index === 1;
           return (
             <View key={item._id}>
-              {showAllLabel && <Text style={[sectionLabel, { marginTop: spacing.lg, marginBottom: spacing.md }]}>All Rooms</Text>}
+              {showAllLabel && <Text style={[sectionLabel, { marginTop: spacing.md, marginBottom: spacing.sm }]}>All Rooms</Text>}
             <TouchableOpacity style={[card, s.roomCard]}
               onPress={() => navigation.navigate('Room', { roomId: item._id, name: item.name })}
               activeOpacity={0.8}>
@@ -65,12 +70,20 @@ export default function RoomsListScreen({ navigation }: any) {
           );
         }}
         ListEmptyComponent={
-          <EmptyState
-            title="No rooms yet"
-            subtitle="Create the first one"
-            actionLabel="Create a room"
-            onAction={() => navigation.navigate('NewRoom')}
-          />
+          query.trim() ? (
+            <View style={{ paddingTop: 40 }}>
+              <Text style={{ color: colors.textSecondary, fontSize: 15, textAlign: 'center' }}>
+                No results for "{query}"
+              </Text>
+            </View>
+          ) : (
+            <EmptyState
+              title={user?.privateRoomId ? "No other rooms" : "No rooms yet"}
+              subtitle={user?.privateRoomId ? "You already have your own" : "Create the first one"}
+              actionLabel={user?.privateRoomId ? undefined : "Create a room"}
+              onAction={user?.privateRoomId ? undefined : () => navigation.navigate('NewRoom')}
+            />
+          )
         }
       />
     </SafeAreaView>
