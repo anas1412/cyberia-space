@@ -25,6 +25,7 @@ export default function RoomScreen({ route, navigation }: any) {
   const [sheetVisible, setSheetVisible] = useState(false);
   const [membersVisible, setMembersVisible] = useState(false);
   const prevPresence = useRef<Set<string>>(new Set());
+  const prevGuests = useRef<Map<string, string>>(new Map());
   const [hasJoined, setHasJoined] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const handleCache = useRef<Map<string, string>>(new Map());
@@ -97,6 +98,30 @@ export default function RoomScreen({ route, navigation }: any) {
 
     prevPresence.current = new Set(currentIds);
   }, [presence, userId]);
+
+  // Track guest changes → system events
+  useEffect(() => {
+    if (!hasJoined) return;
+    const current = new Map((guests as any[]).map((g: any) => [g.handle, g.handle]));
+    const prev = prevGuests.current;
+    const now = Date.now();
+
+    // Guests joined
+    for (const [handle] of current) {
+      if (!prev.has(handle)) {
+        setEvents(prev => [...prev, { _id: `guest-join-${handle}-${now}`, type: 'join', handle, timestamp: now }]);
+      }
+    }
+
+    // Guests left
+    for (const [handle] of prev) {
+      if (!current.has(handle)) {
+        setEvents(prev => [...prev, { _id: `guest-leave-${handle}-${now}`, type: 'leave', handle, timestamp: now }]);
+      }
+    }
+
+    prevGuests.current = current;
+  }, [guests, hasJoined]);
 
   useEffect(() => {
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
