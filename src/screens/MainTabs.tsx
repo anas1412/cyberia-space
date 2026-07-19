@@ -48,7 +48,7 @@ function DesktopTabs({ dmUnread }: { dmUnread: number }) {
           jumpToRef.current = props.navigation.jumpTo;
           const route = props.state.routes[props.state.index];
           if (route && route.name !== activeTab) {
-            setActiveTab(route.name);
+            requestAnimationFrame(() => setActiveTab(route.name));
           }
           return null;
         }}
