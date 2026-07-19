@@ -15,11 +15,12 @@ export default function ResponsiveSheet({ visible, onClose, children }: Props) {
   if (isDesktop) {
     return (
       <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-        <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={onClose}>
+        <View style={s.overlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
           <View style={[s.centeredSheet, { maxWidth: sheetMaxWidth }]} onStartShouldSetResponder={() => true}>
             {children}
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
     );
   }
