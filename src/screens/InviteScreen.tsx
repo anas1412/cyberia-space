@@ -154,6 +154,23 @@ export default function InviteScreen({ route, navigation }: any) {
     );
   }
 
+  // Room not found
+  if (room === null) {
+    return (
+      <SafeAreaView style={s.container} edges={['top']}>
+        <ContentWrap variant="chat">
+          <Header title="Room not found" onBack={goBack} />
+          <View style={s.centered}>
+            <Text style={s.emptyText}>This room doesn't exist anymore</Text>
+            <TouchableOpacity style={s.authBtn} onPress={goBack}>
+              <Text style={s.authBtnText}>Go to rooms</Text>
+            </TouchableOpacity>
+          </View>
+        </ContentWrap>
+      </SafeAreaView>
+    );
+  }
+
   // Need password
   if (needPassword) {
     return (
