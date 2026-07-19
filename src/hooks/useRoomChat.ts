@@ -7,14 +7,15 @@ interface UseRoomChatOptions {
   userId?: string | null;
   hasJoined: boolean;
   onJoined?: () => void;
+  joinTime: number;
 }
 
-export default function useRoomChat({ roomId, userId, hasJoined, onJoined }: UseRoomChatOptions) {
+export default function useRoomChat({ roomId, userId, hasJoined, onJoined, joinTime }: UseRoomChatOptions) {
   const [events, setEvents] = useState<any[]>([]);
   const prevPresence = useRef<Set<string>>(new Set());
   const handleCache = useRef<Map<string, string>>(new Map());
 
-  const messages = useQuery(api.messages.subscribe, { roomId: roomId as any }) ?? [];
+  const messages = useQuery(api.messages.subscribe, { roomId: roomId as any, since: joinTime }) ?? [];
   const presence = useQuery(api.rooms.getPresence, { roomId: roomId as any }) ?? [];
 
   // Track presence changes → system events
@@ -28,6 +29,8 @@ export default function useRoomChat({ roomId, userId, hasJoined, onJoined }: Use
     if (!hasJoined) {
       if (userId && currentIds.has(userId)) {
         prevPresence.current = new Set(currentIds);
+        // Emit "You joined" system event
+        setEvents([{ _id: `join-you-${Date.now()}`, type: 'join', handle: 'You', timestamp: Date.now(), isYou: true }]);
         onJoined?.();
       }
       return;

@@ -12,6 +12,12 @@ async function discoverableRoomCount(ctx: any) {
   return pub.length + priv.length;
 }
 
+export const getDiscoverableCount = query({
+  handler: async (ctx) => {
+    return await discoverableRoomCount(ctx);
+  },
+});
+
 // List public + private rooms (paginated)
 export const listPublic = query({
   args: {
@@ -156,20 +162,6 @@ export const getPresence = query({
       })
     );
     return users.filter(Boolean);
-  },
-});
-
-// Get active guests in a room
-export const getActiveGuests = query({
-  args: { roomId: v.id("rooms") },
-  handler: async (ctx, { roomId }) => {
-    const guests = await ctx.db
-      .query("guestSessions")
-      .withIndex("by_room", (q) => q.eq("roomId", roomId))
-      .collect();
-    return guests
-      .filter((g) => g.active)
-      .map((g) => ({ handle: g.handle, avatarColor: g.avatarColor, joinedAt: g.joinedAt }));
   },
 });
 
@@ -394,12 +386,6 @@ export const remove = mutation({
       .collect();
     for (const b of bans) await ctx.db.delete(b._id);
 
-    const guests = await ctx.db
-      .query("guestSessions")
-      .withIndex("by_room", (q) => q.eq("roomId", roomId))
-      .collect();
-    for (const g of guests) await ctx.db.delete(g._id);
-
     await ctx.db.delete(roomId);
     return { success: true };
   },
@@ -481,117 +467,7 @@ export const listBans = query({
   },
 });
 
-// ── Guest Links ──
-
-export const createGuestLink = mutation({
-  args: {
-    roomId: v.id("rooms"),
-    userId: v.id("users"),
-    multiUse: v.boolean(),
-    expiresInHours: v.optional(v.number()),
-  },
-  handler: async (ctx, { roomId, userId, multiUse, expiresInHours }) => {
-    const room = await ctx.db.get(roomId);
-    if (!room) throw new Error("Room not found");
-    if (room.ownerId !== userId) throw new Error("Not the owner");
-
-    const token = generateToken();
-    const now = Date.now();
-    const expiresAt = expiresInHours ? now + expiresInHours * 60 * 60 * 1000 : now + 24 * 60 * 60 * 1000;
-
-    await ctx.db.insert("guestSessions", {
-      token,
-      roomId,
-      handle: `guest_${token.slice(0, 6)}`,
-      avatarColor: randomColor(),
-      createdBy: userId,
-      multiUse,
-      useCount: 0,
-      joinedAt: 0,
-      expiresAt,
-      active: false,
-    });
-
-    return { token, expiresAt };
-  },
-});
-
-export const consumeGuestLink = mutation({
-  args: { token: v.string() },
-  handler: async (ctx, { token }) => {
-    const session = await ctx.db
-      .query("guestSessions")
-      .withIndex("by_token", (q) => q.eq("token", token))
-      .first();
-    if (!session) return { error: "Invalid link" };
-    if (session.expiresAt < Date.now()) return { error: "Link expired" };
-    if (!session.multiUse && session.useCount >= 1) return { error: "Link already used" };
-    if (session.active) return { error: "Link already in use" };
-
-    await ctx.db.patch(session._id, {
-      active: true,
-      useCount: session.useCount + 1,
-      joinedAt: Date.now(),
-    });
-
-    const room = await ctx.db.get(session.roomId);
-    return {
-      handle: session.handle,
-      avatarColor: session.avatarColor,
-      roomId: session.roomId,
-      roomName: room?.name ?? "Room",
-      roomPassword: room?.password ?? undefined,
-      joinedAt: Date.now(),
-    };
-  },
-});
-
-export const leaveGuest = mutation({
-  args: { token: v.string() },
-  handler: async (ctx, { token }) => {
-    const session = await ctx.db
-      .query("guestSessions")
-      .withIndex("by_token", (q) => q.eq("token", token))
-      .first();
-    if (session) {
-      await ctx.db.patch(session._id, { active: false });
-    }
-    return { success: true };
-  },
-});
-
-export const joinAsGuest = mutation({
-  args: { roomId: v.id("rooms"), password: v.optional(v.string()) },
-  handler: async (ctx, { roomId, password }) => {
-    const room = await ctx.db.get(roomId);
-    if (!room) return { error: "Room not found" };
-    if (room.type === "hidden") return { error: "Cannot join this room" };
-    if (room.type === "private") {
-      if (!password) return { error: "Password required" };
-      if (password !== room.password) return { error: "Wrong password" };
-    }
-
-    const token = generateToken();
-    const handle = `guest_${token.slice(0, 6)}`;
-    const avatarColor = randomColor();
-    const now = Date.now();
-
-    await ctx.db.insert("guestSessions", {
-      token,
-      roomId,
-      handle,
-      avatarColor,
-      createdBy: room.ownerId,
-      multiUse: true,
-      useCount: 1,
-      joinedAt: now,
-      expiresAt: now + 24 * 60 * 60 * 1000,
-      active: true,
-    });
-
-    return { token, handle, avatarColor, roomId };
-  },
-});
+// ── Guest System (new) ──
 
 // Create temporary user account for guest (replaces old guest system)
 export const joinAsTemporaryUser = mutation({
@@ -642,33 +518,6 @@ export const joinAsTemporaryUser = mutation({
   },
 });
 
-export const listGuestLinks = query({
-  args: { roomId: v.id("rooms"), userId: v.id("users") },
-  handler: async (ctx, { roomId, userId }) => {
-    const room = await ctx.db.get(roomId);
-    if (!room) return [];
-    if (room.ownerId !== userId) return [];
-    return await ctx.db
-      .query("guestSessions")
-      .withIndex("by_room", (q) => q.eq("roomId", roomId))
-      .order("desc")
-      .collect();
-  },
-});
-
-export const revokeGuestLink = mutation({
-  args: { roomId: v.id("rooms"), userId: v.id("users"), guestId: v.id("guestSessions") },
-  handler: async (ctx, { roomId, userId, guestId }) => {
-    const room = await ctx.db.get(roomId);
-    if (!room) throw new Error("Room not found");
-    if (room.ownerId !== userId) throw new Error("Not the owner");
-    const guest = await ctx.db.get(guestId);
-    if (!guest || guest.roomId !== roomId) throw new Error("Guest link not found");
-    await ctx.db.delete(guestId);
-    return { success: true };
-  },
-});
-
 // ── Auto-delete empty rooms (called by cron) ──
 
 export const cleanupEmptyRooms = internalMutation({
@@ -688,12 +537,6 @@ export const cleanupEmptyRooms = internalMutation({
         .withIndex("by_room", (q) => q.eq("roomId", room._id))
         .take(1);
       if (presenceCount.length > 0) continue;
-
-      const guests = await ctx.db
-        .query("guestSessions")
-        .withIndex("by_room", (q) => q.eq("roomId", room._id))
-        .take(1);
-      if (guests.some((g) => g.active)) continue;
 
       if (room.ownerId) {
         const owner = await ctx.db.get(room.ownerId);
@@ -719,12 +562,6 @@ export const cleanupEmptyRooms = internalMutation({
         .withIndex("by_room", (q) => q.eq("roomId", room._id))
         .take(100);
       for (const b of bans) await ctx.db.delete(b._id);
-
-      const allGuests = await ctx.db
-        .query("guestSessions")
-        .withIndex("by_room", (q) => q.eq("roomId", room._id))
-        .take(100);
-      for (const g of allGuests) await ctx.db.delete(g._id);
 
       await ctx.db.delete(room._id);
       deleted++;

@@ -78,30 +78,6 @@ export const send = mutation({
   },
 });
 
-// Send a message as a guest
-export const sendAsGuest = mutation({
-  args: {
-    roomId: v.id("rooms"),
-    handle: v.string(),
-    avatarColor: v.string(),
-    text: v.string(),
-  },
-  handler: async (ctx, { roomId, handle, avatarColor, text }) => {
-    if (!text.trim() || text.length > 1000) throw new Error("Invalid message");
-    const now = Date.now();
-    return await ctx.db.insert("messages", {
-      roomId,
-      userId: "guest" as any,
-      handle,
-      avatarColor,
-      text: text.trim(),
-      timestamp: now,
-      expiresAt: now + TTL_MS,
-      mentions: extractMentions(text),
-    });
-  },
-});
-
 // Cleanup job — delete expired messages (run every hour via cron)
 export const cleanupExpired = internalMutation({
   handler: async (ctx) => {

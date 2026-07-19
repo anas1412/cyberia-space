@@ -18,9 +18,10 @@ import Loading from '../components/Loading';
 import useRoomChat from '../hooks/useRoomChat';
 
 export default function RoomScreen({ route, navigation }: any) {
-  const { roomId, name, password, fromInvite } = route.params ?? {};
+  const { roomId, password, fromInvite } = route.params ?? {};
   const { userId, isGuest, loginAsGuest, logout } = useAuth();
   const [input, setInput] = useState('');
+  const [joinTime] = useState(() => Date.now());
   const [sheetVisible, setSheetVisible] = useState(false);
   const [membersVisible, setMembersVisible] = useState(false);
   const [hasJoined, setHasJoined] = useState(false);
@@ -40,6 +41,7 @@ export default function RoomScreen({ route, navigation }: any) {
     userId,
     hasJoined,
     onJoined: () => setHasJoined(true),
+    joinTime,
   });
 
   // Handle invite link: create temporary user account
@@ -135,7 +137,7 @@ export default function RoomScreen({ route, navigation }: any) {
   async function handleLogin() {
     // Store room info before logging out
     const currentRoomId = roomId;
-    const currentRoomName = room?.name ?? name;
+    const currentRoomName = room?.name;
 
     // Log out guest
     await logout();
@@ -163,18 +165,21 @@ export default function RoomScreen({ route, navigation }: any) {
     <SafeAreaView style={s.container} edges={['top']}>
       <ContentWrap variant="chat">
         <Header
-          title={room?.name ?? name}
+          title={room?.name ?? '...'}
           onBack={isGuest ? undefined : () => navigation.goBack()}
+          leftContent={isGuest ? (
+            <TouchableOpacity onPress={handleLogin} style={s.loginBtn}>
+              <Text style={s.loginBtnText}>Login</Text>
+            </TouchableOpacity>
+          ) : undefined}
           onTitlePress={isOwner ? () => setSheetVisible(true) : undefined}
-          rightLabel={isGuest ? "Login" : undefined}
-          onRightPress={isGuest ? handleLogin : undefined}
-          rightContent={!isGuest ? presElements : undefined}
+          rightContent={presElements}
         />
 
       {isGuest && (
         <View style={s.banner}>
           <Text style={s.bannerText}>
-            Guest session · <Text style={s.bannerLink} onPress={handleLogin}>Sign up</Text> to keep your messages
+            Guest session
           </Text>
         </View>
       )}
@@ -212,20 +217,20 @@ export default function RoomScreen({ route, navigation }: any) {
 
       </ContentWrap>
 
-      {!isGuest && (
+      {!isGuest && userId && (
         <RoomSettingsSheet
           visible={sheetVisible}
           onClose={() => setSheetVisible(false)}
           onDeleted={() => navigation.goBack()}
           roomId={roomId}
           userId={userId as string}
-          roomName={room?.name ?? name}
+          roomName={room?.name ?? '...'}
           roomTopic={room?.topic}
           roomType={room?.type}
           createdAt={room?.createdAt}
         />
       )}
-      {!isGuest && (
+      {!isGuest && userId && (
         <MembersSheet
           visible={membersVisible}
           onClose={() => setMembersVisible(false)}
@@ -262,6 +267,9 @@ const s = StyleSheet.create({
   },
   bannerText: { fontSize: fontSize.caption, color: colors.textSecondary, textAlign: 'center' },
   bannerLink: { color: colors.accent, fontWeight: fontWeight.semibold },
+
+  loginBtn: { backgroundColor: colors.accent, borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  loginBtnText: { color: '#000', fontSize: fontSize.small, fontWeight: fontWeight.semibold },
 
   bannedWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg, padding: spacing.xxl },
   bannedTitle: { fontSize: fontSize.header, fontWeight: fontWeight.bold, color: colors.text },

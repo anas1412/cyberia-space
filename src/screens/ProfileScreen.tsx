@@ -99,7 +99,7 @@ export default function ProfileScreen({ navigation }: any) {
         <TouchableOpacity
           style={s.card}
           onPress={() => myRoom
-            ? navigation.navigate('Room', { roomId: myRoom._id, name: myRoom.name })
+            ? navigation.navigate('Room', { roomId: myRoom._id })
             : navigation.navigate('NewRoom')
           }
           activeOpacity={0.7}

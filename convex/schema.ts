@@ -118,19 +118,4 @@ export default defineSchema({
   })
     .index("by_room", ["roomId"])
     .index("by_room_user", ["roomId", "userId"]),
-
-  guestSessions: defineTable({
-    token: v.string(),
-    roomId: v.id("rooms"),
-    handle: v.string(),
-    avatarColor: v.string(),
-    createdBy: v.id("users"),
-    multiUse: v.boolean(),
-    useCount: v.number(),
-    joinedAt: v.number(),
-    expiresAt: v.number(),
-    active: v.boolean(),
-  })
-    .index("by_token", ["token"])
-    .index("by_room", ["roomId"]),
 });

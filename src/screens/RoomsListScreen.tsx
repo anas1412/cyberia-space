@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Users, Lock, EyeOff, SlidersHorizontal } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { usePaginatedQuery, useMutation } from 'convex/react';
+import { usePaginatedQuery, useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
@@ -32,6 +32,7 @@ export default function RoomsListScreen({ navigation }: any) {
     { userId: userId as any },
     { initialNumItems: 20 },
   );
+  const discoverableCount = useQuery(api.rooms.getDiscoverableCount) ?? 0;
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'public' | 'private'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'active'>('newest');
@@ -155,7 +156,7 @@ export default function RoomsListScreen({ navigation }: any) {
               <View>
                 <Text style={[sectionLabel, { marginBottom: spacing.sm }]}>My Room</Text>
                 <TouchableOpacity style={[card, s.roomCard]}
-                  onPress={() => navigation.navigate('Room', { roomId: myRoom._id, name: myRoom.name })}
+                  onPress={() => navigation.navigate('Room', { roomId: myRoom._id })}
                   activeOpacity={0.8}>
                   <DiceBearAvatar seed={myRoom.name} style="glass" size={40} bgColor={myRoom.ownerColor} />
                   <View style={s.roomInfo}>
@@ -185,7 +186,7 @@ export default function RoomsListScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
             )}
-            <Text style={[sectionLabel, { marginBottom: spacing.sm }]}>All Rooms</Text>
+            <Text style={[sectionLabel, { marginBottom: spacing.sm }]}>All Rooms ({discoverableCount}/100)</Text>
           </View>
         }
         renderItem={({ item }: any) => {
@@ -196,7 +197,7 @@ export default function RoomsListScreen({ navigation }: any) {
                 if (item.type === 'private' && !isMine) {
                   setCodeModal({ visible: true, roomId: item._id, roomName: item.name });
                 } else {
-                  navigation.navigate('Room', { roomId: item._id, name: item.name });
+                  navigation.navigate('Room', { roomId: item._id });
                 }
               }}
               activeOpacity={0.8}>
@@ -257,7 +258,7 @@ export default function RoomsListScreen({ navigation }: any) {
                 onPress={async () => {
                   await joinRoom({ roomId: codeModal.roomId as any, userId: userId as any, password: inviteCode });
                   setCodeModal({ visible: false }); setInviteCode('');
-                  navigation.navigate('Room', { roomId: codeModal.roomId, name: codeModal.roomName, password: inviteCode });
+                  navigation.navigate('Room', { roomId: codeModal.roomId, password: inviteCode });
                 }}
               >
                 <Text style={s.modalJoinText}>Join</Text>

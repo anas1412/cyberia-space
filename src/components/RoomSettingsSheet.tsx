@@ -49,7 +49,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
   const deleteRoom = useMutation(api.rooms.remove);
   const unbanUser = useMutation(api.rooms.unban);
   const bans = useQuery(api.rooms.listBans, { roomId }) ?? [];
-  const password = useQuery(api.rooms.getPassword, roomId ? { roomId, userId: userId as any } : 'skip');
+  const password = useQuery(api.rooms.getPassword, roomId && userId ? { roomId, userId: userId as any } : 'skip');
   const regeneratePw = useMutation(api.rooms.regeneratePassword);
 
   useEffect(() => {
