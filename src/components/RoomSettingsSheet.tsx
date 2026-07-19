@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
-import { X, Trash2, Copy, RefreshCw, Check } from 'lucide-react-native';
+import { X, Trash2, Copy, RefreshCw, Check, QrCode } from 'lucide-react-native';
+import QRCodeSVG from 'react-native-qrcode-svg';
 import { useMutation, useQuery } from 'convex/react';
 
 async function copyToClipboard(text: string) {
@@ -38,6 +39,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [selectedType, setSelectedType] = useState(roomType);
   const [copiedField, setCopiedField] = useState<'link' | 'password' | null>(null);
+  const [showQR, setShowQR] = useState(false);
 
   const updateRoom = useMutation(api.rooms.update);
   const deleteRoom = useMutation(api.rooms.remove);
@@ -82,7 +84,6 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
   const inviteLink = selectedType === 'private' && password
     ? `${INVITE_BASE}/${roomId}/${password}`
     : `${INVITE_BASE}/${roomId}`;
-  const inviteShort = inviteLink.replace('https://', '').replace('http://', '');
 
   return (
     <ResponsiveSheet visible={visible} onClose={onClose}>
@@ -156,19 +157,28 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
               </TouchableOpacity>
             </View>
           )}
-          {inviteLink && (
-            <View style={s.inviteLinkRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.passwordLabel}>Invite Link</Text>
-                <Text style={s.inviteLinkText} numberOfLines={1}>{inviteShort}</Text>
-              </View>
-              <TouchableOpacity style={s.copyBtn} onPress={() => handleCopy(inviteLink, 'link')}>
-                {copiedField === 'link'
-                  ? <Check size={14} color="#4ade80" />
-                  : <Copy size={14} color={colors.textSecondary} />}
-              </TouchableOpacity>
-            </View>
-          )}
+          <View style={s.inviteChips}>
+            <TouchableOpacity
+              style={s.inviteChip}
+              onPress={() => handleCopy(inviteLink, 'link')}
+              activeOpacity={0.7}
+            >
+              {copiedField === 'link'
+                ? <Check size={14} color="#000" />
+                : <Copy size={14} color="#000" />}
+              <Text style={s.inviteChipText}>
+                {copiedField === 'link' ? 'Copied!' : 'Copy invite link'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={s.inviteChip}
+              onPress={() => setShowQR(true)}
+              activeOpacity={0.7}
+            >
+              <QrCode size={14} color="#000" />
+              <Text style={s.inviteChipText}>QR code</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ── Banned ── */}
@@ -211,6 +221,22 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
           )}
         </View>
       </ScrollView>
+
+      {/* QR Code Modal */}
+      {showQR && (
+        <View style={s.qrOverlay} onTouchEnd={() => setShowQR(false)}>
+          <View style={s.qrCard} onTouchEnd={(e) => e.stopPropagation()}>
+            <Text style={s.qrTitle}>{roomName}</Text>
+            <View style={s.qrBox}>
+              <QRCodeSVG value={inviteLink} size={200} bgColor="#fff" fgColor="#000" />
+            </View>
+            <Text style={s.qrSub}>Scan to join</Text>
+            <TouchableOpacity style={s.qrClose} onPress={() => setShowQR(false)}>
+              <Text style={s.qrCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </ResponsiveSheet>
   );
 }
@@ -256,13 +282,6 @@ const s = StyleSheet.create({
 
   empty: { color: colors.textMuted, fontSize: fontSize.body, paddingVertical: spacing.sm },
 
-  inviteLinkRow: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md,
-    borderWidth: 1, borderColor: colors.border,
-  },
-  inviteLinkText: { fontSize: fontSize.body, color: colors.text, fontFamily: 'monospace', marginTop: 2 },
-
   passwordRow: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md,
@@ -300,17 +319,34 @@ const s = StyleSheet.create({
   confirmDeleteBtn: { flex: 1, backgroundColor: colors.error, borderRadius: radius.md, padding: spacing.lg, alignItems: 'center' },
   confirmDeleteText: { color: '#fff', fontSize: fontSize.title, fontWeight: fontWeight.semibold },
 
-  inviteRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, paddingHorizontal: spacing.lg,
-    borderWidth: 1, borderColor: colors.border, gap: spacing.sm,
+  inviteChips: {
+    flexDirection: 'row', gap: spacing.sm,
   },
-  codeText: { fontSize: fontSize.title, fontWeight: fontWeight.bold, color: colors.text, letterSpacing: 1 },
-  codeMeta: { fontSize: fontSize.caption, color: colors.textMuted, marginTop: 2 },
-  genBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
-    paddingVertical: spacing.md, borderRadius: radius.md,
-    borderWidth: 1.5, borderColor: 'rgba(232,168,64,0.3)', borderStyle: 'dashed',
+  inviteChip: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+    backgroundColor: colors.accent, borderRadius: radius.md,
+    paddingVertical: spacing.md, paddingHorizontal: spacing.lg,
   },
-  genBtnText: { color: colors.accent, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
+  inviteChipText: { color: '#000', fontSize: fontSize.body, fontWeight: fontWeight.semibold },
+
+  qrOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  qrCard: {
+    backgroundColor: colors.surface, borderRadius: radius.lg,
+    padding: spacing.xxl, alignItems: 'center', gap: spacing.lg,
+    borderWidth: 1, borderColor: colors.borderStrong,
+    width: 280,
+  },
+  qrTitle: { fontSize: fontSize.title, fontWeight: fontWeight.bold, color: colors.text },
+  qrBox: { backgroundColor: '#fff', borderRadius: radius.md, padding: spacing.lg },
+  qrSub: { fontSize: fontSize.caption, color: colors.textMuted },
+  qrClose: {
+    paddingVertical: spacing.md, paddingHorizontal: spacing.xl,
+    backgroundColor: colors.elevated, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  qrCloseText: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
 });
