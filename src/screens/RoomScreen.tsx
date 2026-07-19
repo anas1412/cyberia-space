@@ -33,6 +33,7 @@ export default function RoomScreen({ route, navigation }: any) {
   const room = useQuery(api.rooms.get, { roomId });
   const messages = useQuery(api.messages.subscribe, { roomId, since: joinTime }) ?? [];
   const presence = useQuery(api.rooms.getPresence, { roomId }) ?? [];
+  const guests = useQuery(api.rooms.getActiveGuests, { roomId }) ?? [];
   const sendMsg = useMutation(api.messages.send);
   const joinRoom = useMutation(api.rooms.join);
   const leaveRoom = useMutation(api.rooms.leave);
@@ -217,6 +218,7 @@ export default function RoomScreen({ route, navigation }: any) {
         isOwner={!!isOwner}
         ownerId={room?.ownerId}
         members={presence as any[]}
+        guests={guests as any[]}
       />
     </SafeAreaView>
   );

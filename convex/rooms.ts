@@ -123,6 +123,20 @@ export const getPresence = query({
   },
 });
 
+// Get active guests in a room
+export const getActiveGuests = query({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, { roomId }) => {
+    const guests = await ctx.db
+      .query("guestSessions")
+      .withIndex("by_room", (q) => q.eq("roomId", roomId))
+      .collect();
+    return guests
+      .filter((g) => g.active)
+      .map((g) => ({ handle: g.handle, avatarColor: g.avatarColor, joinedAt: g.joinedAt }));
+  },
+});
+
 // Join a room (set presence)
 export const join = mutation({
   args: { userId: v.id("users"), roomId: v.id("rooms"), code: v.optional(v.string()) },

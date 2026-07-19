@@ -15,52 +15,68 @@ interface Props {
   isOwner: boolean;
   ownerId?: string;
   members: any[];
+  guests?: any[];
 }
 
-export default function MembersSheet({ visible, onClose, roomId, userId, isOwner, ownerId, members }: Props) {
+export default function MembersSheet({ visible, onClose, roomId, userId, isOwner, ownerId, members, guests = [] }: Props) {
   const kickUser = useMutation(api.rooms.kick);
   const banUser = useMutation(api.rooms.ban);
+
+  const totalCount = members.length + guests.length;
 
   return (
     <ResponsiveSheet visible={visible} onClose={onClose}>
       <View style={s.header}>
-        <Text style={s.title}>Members · {members.length}</Text>
+        <Text style={s.title}>Members · {totalCount}</Text>
         <TouchableOpacity onPress={onClose} style={s.closeBtn}>
           <X size={20} color={colors.textSecondary} strokeWidth={2} />
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
-        {members.length === 0 ? (
+        {totalCount === 0 ? (
           <Text style={s.empty}>No one here right now</Text>
         ) : (
-          members.map((p: any) => {
-            const isSelf = p.userId === userId;
-            const isRoomOwner = ownerId && p.userId === ownerId;
-            return (
-              <View key={p.userId} style={s.row}>
-                <View style={s.user}>
-                  <DiceBearAvatar seed={p.handle} style="croodles-neutral" size={36} bgColor={p.avatarColor} />
-                  <Text style={s.handle}>@{p.handle}{isSelf ? ' (you)' : ''}</Text>
-                </View>
-                {isRoomOwner && (
-                  <Crown size={16} color="#F0B90B" strokeWidth={2} />
-                )}
-                {!isRoomOwner && isOwner && !isSelf && (
-                  <View style={s.actions}>
-                    <TouchableOpacity style={s.kickBtn} onPress={() => kickUser({ roomId, ownerId: userId as any, userId: p.userId })}>
-                      <UserMinus size={14} color={colors.textSecondary} strokeWidth={2} />
-                      <Text style={s.kickLabel}>Kick</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={s.banBtn} onPress={() => banUser({ roomId, ownerId: userId as any, userId: p.userId })}>
-                      <Ban size={14} color={colors.error} strokeWidth={2} />
-                      <Text style={s.banLabel}>Ban</Text>
-                    </TouchableOpacity>
+          <>
+            {members.map((p: any) => {
+              const isSelf = p.userId === userId;
+              const isRoomOwner = ownerId && p.userId === ownerId;
+              return (
+                <View key={p.userId} style={s.row}>
+                  <View style={s.user}>
+                    <DiceBearAvatar seed={p.handle} style="croodles-neutral" size={36} bgColor={p.avatarColor} />
+                    <Text style={s.handle}>@{p.handle}{isSelf ? ' (you)' : ''}</Text>
                   </View>
-                )}
+                  {isRoomOwner && (
+                    <Crown size={16} color="#F0B90B" strokeWidth={2} />
+                  )}
+                  {!isRoomOwner && isOwner && !isSelf && (
+                    <View style={s.actions}>
+                      <TouchableOpacity style={s.kickBtn} onPress={() => kickUser({ roomId, ownerId: userId as any, userId: p.userId })}>
+                        <UserMinus size={14} color={colors.textSecondary} strokeWidth={2} />
+                        <Text style={s.kickLabel}>Kick</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={s.banBtn} onPress={() => banUser({ roomId, ownerId: userId as any, userId: p.userId })}>
+                        <Ban size={14} color={colors.error} strokeWidth={2} />
+                        <Text style={s.banLabel}>Ban</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+            {guests.map((g: any, i: number) => (
+              <View key={`guest-${i}`} style={s.row}>
+                <View style={s.user}>
+                  <DiceBearAvatar seed={g.handle} style="croodles-neutral" size={36} bgColor={g.avatarColor} />
+                  <Text style={s.handle}>@{g.handle}</Text>
+                  <View style={s.guestBadge}>
+                    <Text style={s.guestBadgeText}>Guest</Text>
+                  </View>
+                </View>
               </View>
-            );
-          })
+            ))}
+          </>
         )}
       </ScrollView>
     </ResponsiveSheet>
@@ -90,6 +106,15 @@ const s = StyleSheet.create({
   },
   user: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   handle: { fontSize: fontSize.body, color: colors.text, fontWeight: fontWeight.semibold },
+  guestBadge: {
+    backgroundColor: colors.accentBg,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(232,168,64,0.2)',
+  },
+  guestBadgeText: { fontSize: fontSize.caption, color: colors.accent, fontWeight: fontWeight.semibold },
 
   actions: { flexDirection: 'row', gap: spacing.sm },
   kickBtn: {
