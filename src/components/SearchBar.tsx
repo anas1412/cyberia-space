@@ -38,9 +38,6 @@ const s = StyleSheet.create({
     borderColor: colors.borderStrong,
     paddingHorizontal: spacing.md,
     height: 40,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
   },
   input: {
     flex: 1,
