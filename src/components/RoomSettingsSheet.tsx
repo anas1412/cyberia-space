@@ -63,7 +63,6 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
     setSaving(true);
     await updateRoom({ roomId, userId: userId as any, name: name.trim(), topic: topic.trim() || undefined, type: selectedType as any });
     setSaving(false);
-    onClose();
   }
 
   async function handleDelete() {
