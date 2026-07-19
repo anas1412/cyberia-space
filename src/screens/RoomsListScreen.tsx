@@ -195,9 +195,7 @@ export default function RoomsListScreen({ navigation }: any) {
           ) : (
             <EmptyState
               title={user?.privateRoomId ? "No other rooms" : "No rooms yet"}
-              subtitle={user?.privateRoomId ? "You already have your own" : "Create the first one"}
-              actionLabel={user?.privateRoomId ? undefined : "Create a room"}
-              onAction={user?.privateRoomId ? undefined : () => navigation.navigate('NewRoom')}
+              subtitle={user?.privateRoomId ? "You already have your own" : undefined}
             />
           )
         }
