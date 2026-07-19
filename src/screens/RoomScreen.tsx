@@ -139,14 +139,15 @@ export default function RoomScreen({ route, navigation }: any) {
     await sendMsg({ roomId, userId: userId as any, text });
   }
 
+  const allOnline = [...(presence as any[]), ...(guests as any[])];
   const presElements = (
     <TouchableOpacity onPress={() => setMembersVisible(true)} style={s.presRow} activeOpacity={0.7}>
-      {(presence as any[]).slice(0, 4).map((p: any) => (
-        <View key={p.userId} style={[s.presAvWrap, { marginLeft: -8 }]}>
+      {allOnline.slice(0, 4).map((p: any, i: number) => (
+        <View key={p.userId ?? `guest-${i}`} style={[s.presAvWrap, { marginLeft: -8 }]}>
           <DiceBearAvatar seed={p.handle} style="croodles-neutral" size={26} bgColor={p.avatarColor} />
         </View>
       ))}
-      {presence.length > 4 && <Text style={s.presMore}>+{presence.length - 4}</Text>}
+      {allOnline.length > 4 && <Text style={s.presMore}>+{allOnline.length - 4}</Text>}
     </TouchableOpacity>
   );
 
