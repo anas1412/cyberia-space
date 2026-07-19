@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet } from 'react-native';
 import { Hash, MessageCircle, CircleUser } from 'lucide-react-native';
@@ -63,10 +63,19 @@ function DesktopTabs({ dmUnread }: { dmUnread: number }) {
 }
 
 export default function MainTabs() {
-  const { userId } = useAuth();
+  const { userId, isGuest, logout } = useAuth();
   const { isDesktop } = useResponsive();
+  const navigation = require('@react-navigation/native').useNavigation();
   const dms = useQuery(api.dms.listForUser, userId ? { userId: userId as any } : 'skip');
   const dmUnread = dms ? dms.filter((d: any) => d.unreadCount > 0).length : 0;
+
+  // Guard: guests should not be here
+  useEffect(() => {
+    if (isGuest) {
+      logout();
+      navigation.replace('Auth');
+    }
+  }, [isGuest]);
 
   if (isDesktop) {
     return <DesktopTabs dmUnread={dmUnread} />;

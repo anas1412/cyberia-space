@@ -13,7 +13,6 @@ import RoomScreen    from './src/screens/RoomScreen';
 import DMScreen      from './src/screens/DMScreen';
 import NewRoomScreen from './src/screens/NewRoomScreen';
 import NewDMScreen   from './src/screens/NewDMScreen';
-import InviteScreen   from './src/screens/InviteScreen';
 
 const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL ?? 'https://honorable-armadillo-17.eu-west-1.convex.cloud');
 const Stack  = createNativeStackNavigator();
@@ -22,7 +21,7 @@ const linking = {
   prefixes: ['cyberia://', 'https://chat.cyberiaspace.app'],
   config: {
     screens: {
-      Invite: 'invite/:roomId/:password',
+      Room: 'invite/:roomId/:password?',
     },
   },
 };
@@ -49,7 +48,6 @@ export default function App() {
               <Stack.Screen name="DM"      component={DMScreen} />
               <Stack.Screen name="NewRoom" component={NewRoomScreen} />
               <Stack.Screen name="NewDM"   component={NewDMScreen} />
-              <Stack.Screen name="Invite"   component={InviteScreen} />
             </Stack.Navigator>
           </NavigationContainer>
         </AuthProvider>

@@ -188,3 +188,41 @@ export const logout = mutation({
     return { success: true };
   },
 });
+
+// Cleanup orphaned guest users (run by cron every hour)
+export const cleanupGuestUsers = internalMutation({
+  handler: async (ctx) => {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const oldGuests = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("isGuest"), true))
+      .filter((q) => q.lt(q.field("createdAt"), cutoff))
+      .collect();
+
+    for (const guest of oldGuests) {
+      // Delete their sessions
+      const sessions = await ctx.db
+        .query("sessions")
+        .withIndex("by_user", (q) => q.eq("userId", guest._id))
+        .collect();
+      for (const s of sessions) await ctx.db.delete(s._id);
+
+      // Delete their presence
+      const presence = await ctx.db
+        .query("presence")
+        .withIndex("by_user", (q) => q.eq("userId", guest._id))
+        .collect();
+      for (const p of presence) {
+        const room = await ctx.db.get(p.roomId);
+        if (room) {
+          await ctx.db.patch(p.roomId, { memberCount: Math.max(0, room.memberCount - 1) });
+        }
+        await ctx.db.delete(p._id);
+      }
+
+      // Delete the user
+      await ctx.db.delete(guest._id);
+    }
+    return { deleted: oldGuests.length };
+  },
+});

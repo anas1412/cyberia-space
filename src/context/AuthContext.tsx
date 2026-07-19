@@ -7,9 +7,11 @@ type AuthCtx = {
   user: any;
   userId: string | null;
   token: string | null;
+  isGuest: boolean;
   isLoading: boolean;
   isLoggedIn: boolean;
   login: (token: string, userId: string) => Promise<void>;
+  loginAsGuest: (token: string, userId: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -39,6 +41,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUserId(uid);
   }
 
+  async function loginAsGuest(t: string, uid: string) {
+    await saveSession(t, uid);
+    setToken(t);
+    setUserId(uid);
+  }
+
   async function logout() {
     if (token) await logoutMutation({ token });
     await clearSession();
@@ -51,9 +59,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user: user ?? null,
       userId,
       token,
+      isGuest: !!user?.isGuest,
       isLoading: booting || (!!token && user === undefined),
       isLoggedIn: !!user,
       login,
+      loginAsGuest,
       logout,
     }}>
       {children}

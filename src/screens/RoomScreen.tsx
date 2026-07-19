@@ -15,33 +15,55 @@ import ChatInput from '../components/ChatInput';
 import RoomSettingsSheet from '../components/RoomSettingsSheet';
 import MembersSheet from '../components/MembersSheet';
 import Loading from '../components/Loading';
+import useRoomChat from '../hooks/useRoomChat';
 
 export default function RoomScreen({ route, navigation }: any) {
-  const { roomId, name, password } = route.params;
-  const { userId } = useAuth();
+  const { roomId, name, password, fromInvite } = route.params ?? {};
+  const { userId, isGuest, loginAsGuest, logout } = useAuth();
   const [input, setInput] = useState('');
-  const [joinTime] = useState(() => Date.now());
-  const [events, setEvents] = useState<any[]>([]);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [membersVisible, setMembersVisible] = useState(false);
-  const prevPresence = useRef<Set<string>>(new Set());
-  const prevGuests = useRef<Map<string, string>>(new Map());
   const [hasJoined, setHasJoined] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
-  const handleCache = useRef<Map<string, string>>(new Map());
+  const [creatingGuest, setCreatingGuest] = useState(false);
   const listRef = useRef<FlatList>(null);
 
   const room = useQuery(api.rooms.get, { roomId });
-  const messages = useQuery(api.messages.subscribe, { roomId, since: joinTime }) ?? [];
-  const presence = useQuery(api.rooms.getPresence, { roomId }) ?? [];
-  const guests = useQuery(api.rooms.getActiveGuests, { roomId }) ?? [];
   const sendMsg = useMutation(api.messages.send);
   const joinRoom = useMutation(api.rooms.join);
   const leaveRoom = useMutation(api.rooms.leave);
   const ping = useMutation(api.rooms.ping);
+  const joinAsTemporaryUser = useMutation(api.rooms.joinAsTemporaryUser);
 
+  const { items, presence } = useRoomChat({
+    roomId,
+    userId,
+    hasJoined,
+    onJoined: () => setHasJoined(true),
+  });
+
+  // Handle invite link: create temporary user account
   useEffect(() => {
-    if (!userId) return;
+    if (!fromInvite || userId || creatingGuest) return;
+
+    setCreatingGuest(true);
+    setJoinError(null);
+    joinAsTemporaryUser({ roomId, password: password ?? undefined }).then(async (res: any) => {
+      if (res?.error) {
+        if (res.error === 'Password required') setJoinError(res.error);
+        else setJoinError(res.error);
+        setCreatingGuest(false);
+        return;
+      }
+      // Login as guest using the created account
+      await loginAsGuest(res.token, res.userId);
+      setCreatingGuest(false);
+    });
+  }, [fromInvite, userId]);
+
+  // Join room for authenticated users
+  useEffect(() => {
+    if (!userId || fromInvite) return;
     setJoinError(null);
     joinRoom({ userId: userId as any, roomId, password: password ?? undefined }).then((res: any) => {
       if (res?.error) setJoinError(res.error);
@@ -49,89 +71,6 @@ export default function RoomScreen({ route, navigation }: any) {
     const interval = setInterval(() => ping({ userId: userId as any, roomId }), 30000);
     return () => { clearInterval(interval); leaveRoom({ userId: userId as any, roomId }); };
   }, [userId, roomId]);
-
-  // Track presence changes → system events
-  useEffect(() => {
-    const currentIds = new Set((presence as any[]).map((p: any) => p.userId));
-
-    // Cache handles for leave events
-    for (const p of (presence as any[])) {
-      handleCache.current.set(p.userId, p.handle);
-    }
-
-    // Wait until we detect ourselves in the room before tracking others
-    if (!hasJoined) {
-      if (userId && currentIds.has(userId)) {
-        setHasJoined(true);
-        const others = [...currentIds].filter(id => id !== userId);
-        setEvents(prev => [
-          ...prev,
-          { _id: `join-you`, type: 'join', handle: 'You', timestamp: joinTime, isYou: true },
-          // Don't emit events for people already here — just seed them silently
-        ]);
-        // Seed current state as baseline — everyone here now is "already present"
-        prevPresence.current = new Set(currentIds);
-      }
-      return;
-    }
-
-    const prev = prevPresence.current;
-    const now = Date.now();
-
-    // Others joined (appeared since last check and not in baseline)
-    for (const id of currentIds) {
-      if (!prev.has(id) && id !== userId) {
-        const p = (presence as any[]).find((x: any) => x.userId === id);
-        if (p) {
-          setEvents(prev => [...prev, { _id: `join-${id}-${now}`, type: 'join', handle: p.handle, timestamp: now }]);
-        }
-      }
-    }
-
-    // Others left
-    for (const id of prev) {
-      if (!currentIds.has(id) && id !== userId) {
-        const cached = handleCache.current.get(id) || 'Someone';
-        setEvents(prev => [...prev, { _id: `leave-${id}-${now}`, type: 'leave', handle: cached, timestamp: now }]);
-      }
-    }
-
-    prevPresence.current = new Set(currentIds);
-  }, [presence, userId]);
-
-  // Track guest changes → system events
-  useEffect(() => {
-    if (!hasJoined) return;
-    const current = new Map((guests as any[]).map((g: any) => [g.handle, g.handle]));
-    const prev = prevGuests.current;
-    const now = Date.now();
-
-    // Guests joined
-    for (const [handle] of current) {
-      if (!prev.has(handle)) {
-        setEvents(prev => [...prev, { _id: `guest-join-${handle}-${now}`, type: 'join', handle, timestamp: now }]);
-      }
-    }
-
-    // Guests left
-    for (const [handle] of prev) {
-      if (!current.has(handle)) {
-        setEvents(prev => [...prev, { _id: `guest-leave-${handle}-${now}`, type: 'leave', handle, timestamp: now }]);
-      }
-    }
-
-    prevGuests.current = current;
-  }, [guests, hasJoined]);
-
-  useEffect(() => {
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
-  }, [messages.length, events.length]);
-
-  // Merge messages and system events sorted by timestamp
-  const items = [
-    ...messages.map((m: any) => ({ ...m, _kind: 'msg' as const })),
-    ...events.map((e: any) => ({ ...e, _kind: 'event' as const })),
-  ].sort((a: any, b: any) => a.timestamp - b.timestamp);
 
   // Group consecutive messages
   const msgIndices = new Map<string, { showHandle: boolean; showAvatar: boolean; showTime: boolean; isConsec: boolean }>();
@@ -154,7 +93,36 @@ export default function RoomScreen({ route, navigation }: any) {
     if (room === null) navigation.goBack();
   }, [room]);
 
-  if (room === undefined) return <SafeAreaView style={s.container} edges={['top']}><ContentWrap variant="chat"><Header title="..." onBack={() => navigation.goBack()} /><Loading /></ContentWrap></SafeAreaView>;
+  // Loading state
+  if (room === undefined || creatingGuest) {
+    return (
+      <SafeAreaView style={s.container} edges={['top']}>
+        <ContentWrap variant="chat">
+          <Header title={fromInvite ? "Joining…" : "..."} onBack={() => navigation.goBack()} />
+          <Loading />
+        </ContentWrap>
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  if (joinError) {
+    return (
+      <SafeAreaView style={s.container} edges={['top']}>
+        <ContentWrap variant="chat">
+          <Header title="Cannot join" onBack={() => navigation.goBack()} />
+          <View style={s.bannedWrap}>
+            <Ban size={48} color={joinError === 'You are banned from this room' ? colors.error : colors.textSecondary} strokeWidth={1.5} />
+            <Text style={s.bannedTitle}>{joinError === 'You are banned from this room' ? 'You are banned' : 'Cannot join'}</Text>
+            <Text style={s.bannedSub}>{joinError}</Text>
+            <TouchableOpacity style={s.bannedBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+              <Text style={s.bannedBtnText}>Go back</Text>
+            </TouchableOpacity>
+          </View>
+        </ContentWrap>
+      </SafeAreaView>
+    );
+  }
 
   const isOwner = room && userId && room.ownerId === userId;
 
@@ -164,7 +132,22 @@ export default function RoomScreen({ route, navigation }: any) {
     await sendMsg({ roomId, userId: userId as any, text });
   }
 
-  const allOnline = [...(presence as any[]), ...(guests as any[])];
+  async function handleLogin() {
+    // Store room info before logging out
+    const currentRoomId = roomId;
+    const currentRoomName = room?.name ?? name;
+
+    // Log out guest
+    await logout();
+
+    // Navigate to auth, then back to room
+    navigation.navigate('Auth', {
+      preAuthRoomId: currentRoomId,
+      preAuthRoomName: currentRoomName,
+    });
+  }
+
+  const allOnline = [...(presence as any[])];
   const presElements = (
     <TouchableOpacity onPress={() => setMembersVisible(true)} style={s.presRow} activeOpacity={0.7}>
       {allOnline.slice(0, 4).map((p: any, i: number) => (
@@ -179,19 +162,24 @@ export default function RoomScreen({ route, navigation }: any) {
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <ContentWrap variant="chat">
-        <Header title={room?.name ?? name} onBack={() => navigation.goBack()} onTitlePress={isOwner ? () => setSheetVisible(true) : undefined} rightContent={presElements} />
+        <Header
+          title={room?.name ?? name}
+          onBack={isGuest ? undefined : () => navigation.goBack()}
+          onTitlePress={isOwner ? () => setSheetVisible(true) : undefined}
+          rightLabel={isGuest ? "Login" : undefined}
+          onRightPress={isGuest ? handleLogin : undefined}
+          rightContent={!isGuest ? presElements : undefined}
+        />
 
-      {joinError ? (
-        <View style={s.bannedWrap}>
-          <Ban size={48} color={joinError === 'You are banned from this room' ? colors.error : colors.textSecondary} strokeWidth={1.5} />
-          <Text style={s.bannedTitle}>{joinError === 'You are banned from this room' ? 'You are banned' : 'Cannot join'}</Text>
-          <Text style={s.bannedSub}>{joinError}</Text>
-          <TouchableOpacity style={s.bannedBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-            <Text style={s.bannedBtnText}>Go back</Text>
-          </TouchableOpacity>
+      {isGuest && (
+        <View style={s.banner}>
+          <Text style={s.bannerText}>
+            Guest session · <Text style={s.bannerLink} onPress={handleLogin}>Sign up</Text> to keep your messages
+          </Text>
         </View>
-      ) : (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.flex}>
+      )}
+
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.flex}>
         <FlatList
           ref={listRef}
           data={items}
@@ -221,31 +209,33 @@ export default function RoomScreen({ route, navigation }: any) {
           placeholder={`Message #${room?.name ?? '...'}`}
         />
       </KeyboardAvoidingView>
-      )}
 
       </ContentWrap>
 
-      <RoomSettingsSheet
-        visible={sheetVisible}
-        onClose={() => setSheetVisible(false)}
-        onDeleted={() => navigation.goBack()}
-        roomId={roomId}
-        userId={userId as string}
-        roomName={room?.name ?? name}
-        roomTopic={room?.topic}
-        roomType={room?.type}
-        createdAt={room?.createdAt}
-      />
-      <MembersSheet
-        visible={membersVisible}
-        onClose={() => setMembersVisible(false)}
-        roomId={roomId}
-        userId={userId as string}
-        isOwner={!!isOwner}
-        ownerId={room?.ownerId}
-        members={presence as any[]}
-        guests={guests as any[]}
-      />
+      {!isGuest && (
+        <RoomSettingsSheet
+          visible={sheetVisible}
+          onClose={() => setSheetVisible(false)}
+          onDeleted={() => navigation.goBack()}
+          roomId={roomId}
+          userId={userId as string}
+          roomName={room?.name ?? name}
+          roomTopic={room?.topic}
+          roomType={room?.type}
+          createdAt={room?.createdAt}
+        />
+      )}
+      {!isGuest && (
+        <MembersSheet
+          visible={membersVisible}
+          onClose={() => setMembersVisible(false)}
+          roomId={roomId}
+          userId={userId as string}
+          isOwner={!!isOwner}
+          ownerId={room?.ownerId}
+          members={presence as any[]}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -265,6 +255,13 @@ const s = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: colors.border, alignItems: 'center',
   },
   ttlText: { fontSize: fontSize.caption, color: colors.textMuted },
+
+  banner: {
+    paddingVertical: spacing.sm, paddingHorizontal: spacing.lg,
+    backgroundColor: colors.accentBg, borderBottomWidth: 1, borderBottomColor: 'rgba(232,168,64,0.15)',
+  },
+  bannerText: { fontSize: fontSize.caption, color: colors.textSecondary, textAlign: 'center' },
+  bannerLink: { color: colors.accent, fontWeight: fontWeight.semibold },
 
   bannedWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg, padding: spacing.xxl },
   bannedTitle: { fontSize: fontSize.header, fontWeight: fontWeight.bold, color: colors.text },

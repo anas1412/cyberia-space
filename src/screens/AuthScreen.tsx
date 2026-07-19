@@ -15,7 +15,9 @@ import ColorPicker from '../components/ColorPicker';
 
 type Step = 'phone' | 'otp' | 'handle';
 
-export default function AuthScreen({ navigation }: any) {
+export default function AuthScreen({ route, navigation }: any) {
+  const preAuthRoomId = route?.params?.preAuthRoomId;
+  const preAuthRoomName = route?.params?.preAuthRoomName;
   const { login } = useAuth();
   const [step, setStep] = useState<Step>('phone');
   const [phone, setPhone] = useState('+216');
@@ -54,7 +56,14 @@ export default function AuthScreen({ navigation }: any) {
       if (!res.success) { setError(res.error ?? 'Invalid code'); setLoading(false); return; }
       setUserId(res.userId as string); setToken(res.token as string);
       if (res.isNewUser) setStep('handle');
-      else { await login(res.token as string, res.userId as string); navigation.replace('Main'); }
+      else {
+        await login(res.token as string, res.userId as string);
+        if (preAuthRoomId) {
+          navigation.replace('Room', { roomId: preAuthRoomId, name: preAuthRoomName });
+        } else {
+          navigation.replace('Main');
+        }
+      }
     } catch (e: any) { setError(e.message); }
     setLoading(false);
   }
@@ -65,7 +74,11 @@ export default function AuthScreen({ navigation }: any) {
       const res = await setHandleFn({ userId: userId as any, handle, avatarColor: color });
       if ('error' in res && res.error) { setError(res.error); setLoading(false); return; }
       await login(token, userId);
-      navigation.replace('Main');
+      if (preAuthRoomId) {
+        navigation.replace('Room', { roomId: preAuthRoomId, name: preAuthRoomName });
+      } else {
+        navigation.replace('Main');
+      }
     } catch (e: any) { setError(e.message); }
     setLoading(false);
   }

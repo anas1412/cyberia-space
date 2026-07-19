@@ -14,4 +14,7 @@ crons.interval("cleanup stale presence", { minutes: 2 }, internal.presence.clean
 // Delete empty rooms every 5 minutes
 crons.interval("cleanup empty rooms", { minutes: 5 }, internal.rooms.cleanupEmptyRooms);
 
+// Clean up orphaned guest users every hour
+crons.interval("cleanup guest users", { hours: 1 }, internal.auth.cleanupGuestUsers);
+
 export default crons;

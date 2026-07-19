@@ -593,6 +593,55 @@ export const joinAsGuest = mutation({
   },
 });
 
+// Create temporary user account for guest (replaces old guest system)
+export const joinAsTemporaryUser = mutation({
+  args: { roomId: v.id("rooms"), password: v.optional(v.string()) },
+  handler: async (ctx, { roomId, password }) => {
+    const room = await ctx.db.get(roomId);
+    if (!room) return { error: "Room not found" };
+    if (room.type === "hidden") return { error: "Cannot join this room" };
+    if (room.type === "private") {
+      if (!password) return { error: "Password required" };
+      if (password !== room.password) return { error: "Wrong password" };
+    }
+
+    const token = generateToken();
+    const handle = `guest_${token.slice(0, 6)}`;
+    const avatarColor = randomColor();
+    const now = Date.now();
+
+    // Create real user account marked as guest
+    const userId = await ctx.db.insert("users", {
+      phone: `guest_${token}`,
+      handle,
+      avatarColor,
+      isGuest: true,
+      createdAt: now,
+      lastSeen: now,
+    });
+
+    // Create session (24h expiry)
+    const sessionToken = Array.from({ length: 32 }, () =>
+      Math.floor(Math.random() * 256).toString(16).padStart(2, "0")
+    ).join("");
+
+    await ctx.db.insert("sessions", {
+      userId,
+      token: sessionToken,
+      expiresAt: now + 24 * 60 * 60 * 1000,
+      platform: "guest",
+    });
+
+    return {
+      userId,
+      token: sessionToken,
+      handle,
+      avatarColor,
+      roomId,
+    };
+  },
+});
+
 export const listGuestLinks = query({
   args: { roomId: v.id("rooms"), userId: v.id("users") },
   handler: async (ctx, { roomId, userId }) => {

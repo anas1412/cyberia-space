@@ -6,6 +6,7 @@ export default defineSchema({
     phone: v.string(),
     handle: v.string(),
     avatarColor: v.string(),
+    isGuest: v.optional(v.boolean()),
     privateRoomId: v.optional(v.id("rooms")),
     pushToken: v.optional(v.string()),
     webPushSubscription: v.optional(v.string()),
