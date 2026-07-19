@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
 const ROOM_TYPES = v.union(v.literal("public"), v.literal("private"), v.literal("hidden"));
@@ -578,6 +578,70 @@ export const revokeGuestLink = mutation({
     if (!guest || guest.roomId !== roomId) throw new Error("Guest link not found");
     await ctx.db.delete(guestId);
     return { success: true };
+  },
+});
+
+// ── Auto-delete empty rooms (called by cron) ──
+
+export const cleanupEmptyRooms = internalMutation({
+  handler: async (ctx) => {
+    const rooms = await ctx.db
+      .query("rooms")
+      .order("asc")
+      .take(100);
+
+    let deleted = 0;
+    for (const room of rooms) {
+      if (room.memberCount > 0) continue;
+      if (room.memberCount > 0) continue;
+
+      const presenceCount = await ctx.db
+        .query("presence")
+        .withIndex("by_room", (q) => q.eq("roomId", room._id))
+        .take(1);
+      if (presenceCount.length > 0) continue;
+
+      const guests = await ctx.db
+        .query("guestSessions")
+        .withIndex("by_room", (q) => q.eq("roomId", room._id))
+        .take(1);
+      if (guests.some((g) => g.active)) continue;
+
+      if (room.ownerId) {
+        const owner = await ctx.db.get(room.ownerId);
+        if (owner?.privateRoomId === room._id) {
+          await ctx.db.patch(room.ownerId, { privateRoomId: undefined });
+        }
+      }
+
+      const messages = await ctx.db
+        .query("messages")
+        .withIndex("by_room_time", (q) => q.eq("roomId", room._id))
+        .take(500);
+      for (const m of messages) await ctx.db.delete(m._id);
+
+      const presences = await ctx.db
+        .query("presence")
+        .withIndex("by_room", (q) => q.eq("roomId", room._id))
+        .take(100);
+      for (const p of presences) await ctx.db.delete(p._id);
+
+      const bans = await ctx.db
+        .query("roomBans")
+        .withIndex("by_room", (q) => q.eq("roomId", room._id))
+        .take(100);
+      for (const b of bans) await ctx.db.delete(b._id);
+
+      const allGuests = await ctx.db
+        .query("guestSessions")
+        .withIndex("by_room", (q) => q.eq("roomId", room._id))
+        .take(100);
+      for (const g of allGuests) await ctx.db.delete(g._id);
+
+      await ctx.db.delete(room._id);
+      deleted++;
+    }
+    return { deleted };
   },
 });
 

@@ -11,4 +11,7 @@ crons.interval("cleanup expired notifications", { hours: 1 }, internal.notificat
 // Clean up stale presence every 2 minutes
 crons.interval("cleanup stale presence", { minutes: 2 }, internal.presence.cleanupStale);
 
+// Delete empty rooms every 5 minutes
+crons.interval("cleanup empty rooms", { minutes: 5 }, internal.rooms.cleanupEmptyRooms);
+
 export default crons;

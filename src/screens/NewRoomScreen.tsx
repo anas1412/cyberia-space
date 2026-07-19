@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery } from 'convex/react';
-import { Zap, Clock, Home, Users } from 'lucide-react-native';
+import { Zap, Clock, Home, Users, Trash2 } from 'lucide-react-native';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
@@ -85,6 +85,7 @@ export default function NewRoomScreen({ navigation }: any) {
               roomType === 'hidden'
                 ? { Icon: Home, text: 'Your room is unlisted, reachable only by link' }
                 : { Icon: Users, text: 'Discoverable and joinable via invite link' },
+              { Icon: Trash2, text: 'Empty rooms are deleted shortly after everyone leaves' },
             ].map((item, i) => (
               <View key={i} style={s.infoRow}>
                 <item.Icon size={16} color={colors.textSecondary} strokeWidth={2} />
