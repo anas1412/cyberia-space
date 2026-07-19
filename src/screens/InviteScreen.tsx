@@ -40,10 +40,16 @@ export default function InviteScreen({ route, navigation }: any) {
 
   // Join room
   useEffect(() => {
+    // Still loading auth state
     if (userId === undefined) return;
 
     // Authenticated user
     if (userId) {
+      // Clean up any guest session that was created during the loading phase
+      if (guest) {
+        leaveGuest({ token: guest.token });
+        setGuest(null);
+      }
       if (hasJoined) return;
       setJoinError(null);
       joinRoom({ userId: userId as any, roomId, password: urlPassword ?? undefined }).then((res: any) => {
@@ -58,7 +64,7 @@ export default function InviteScreen({ route, navigation }: any) {
       return;
     }
 
-    // Not authenticated — join as guest (only once)
+    // userId is null — definitely not authenticated, join as guest (only once)
     if (guest || joinError) return;
     joinAsGuest({ roomId, password: urlPassword ?? undefined }).then((res: any) => {
       if (res?.error) {
@@ -263,12 +269,7 @@ export default function InviteScreen({ route, navigation }: any) {
               showTime
             />
           )}
-          ListEmptyComponent={
-            <View style={s.centered}>
-              <Text style={s.emptyText}>No messages yet</Text>
-              <Text style={s.emptySub}>Be the first to say something</Text>
-            </View>
-          }
+          ListEmptyComponent={null}
         />
 
         <View style={s.ttlBar}>
@@ -302,7 +303,7 @@ const s = StyleSheet.create({
   bannerText: { fontSize: fontSize.caption, color: colors.textSecondary, textAlign: 'center' },
   bannerHandle: { color: colors.accent, fontWeight: fontWeight.semibold },
   emptyText: { color: colors.textSecondary, fontSize: fontSize.body },
-  emptySub: { color: colors.textMuted, fontSize: fontSize.small },
+
   ttlBar: { paddingVertical: spacing.sm, paddingHorizontal: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border, alignItems: 'center' as const },
   ttlText: { fontSize: fontSize.caption, color: colors.textMuted },
 });
