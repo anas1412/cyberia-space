@@ -35,7 +35,8 @@ export default defineSchema({
     name: v.string(),
     topic: v.optional(v.string()),
     ownerId: v.id("users"),
-    type: v.union(v.literal("public"), v.literal("invite"), v.literal("hidden")),
+    type: v.union(v.literal("public"), v.literal("private"), v.literal("hidden")),
+    password: v.optional(v.string()),
     memberCount: v.number(),
     createdAt: v.number(),
   })
@@ -115,18 +116,6 @@ export default defineSchema({
   })
     .index("by_room", ["roomId"])
     .index("by_room_user", ["roomId", "userId"]),
-
-  roomInvites: defineTable({
-    roomId: v.id("rooms"),
-    code: v.string(),
-    createdBy: v.id("users"),
-    multiUse: v.boolean(),
-    useCount: v.number(),
-    expiresAt: v.number(),
-    createdAt: v.number(),
-  })
-    .index("by_room", ["roomId"])
-    .index("by_code", ["code"]),
 
   guestSessions: defineTable({
     token: v.string(),

@@ -11,7 +11,7 @@ const AVATAR_COLORS = [
 export const authenticateUser = internalMutation({
   args: { phone: v.string() },
   handler: async (ctx, { phone }) => {
-    let user = await ctx.db
+    const user = await ctx.db
       .query("users")
       .withIndex("by_phone", (q) => q.eq("phone", phone))
       .first();

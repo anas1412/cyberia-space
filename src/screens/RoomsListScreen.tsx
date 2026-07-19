@@ -73,7 +73,7 @@ export default function RoomsListScreen({ navigation }: any) {
               {showAllLabel && <Text style={[sectionLabel, { marginTop: spacing.md, marginBottom: spacing.sm }]}>All Rooms</Text>}
             <TouchableOpacity style={[card, s.roomCard]}
               onPress={() => {
-                if (item.type === 'invite' && !isMine) {
+                if (item.type === 'private' && !isMine) {
                   setCodeModal({ visible: true, roomId: item._id, roomName: item.name });
                 } else {
                   navigation.navigate('Room', { roomId: item._id, name: item.name });
@@ -85,7 +85,7 @@ export default function RoomsListScreen({ navigation }: any) {
                 <View style={s.nameRow}>
                   <Text style={s.roomName} numberOfLines={1}>{item.name}</Text>
                   {item.type === 'public' && <Globe size={12} color={colors.textMuted} strokeWidth={2} />}
-                  {item.type === 'invite' && <Lock size={12} color={colors.textMuted} strokeWidth={2} />}
+                  {item.type === 'private' && <Lock size={12} color={colors.textMuted} strokeWidth={2} />}
                   {item.type === 'hidden' && <EyeOff size={12} color={colors.textMuted} strokeWidth={2} />}
                 </View>
                 {item.topic ? <Text style={s.roomTopic} numberOfLines={1}>{item.topic}</Text> : null}
@@ -116,16 +116,16 @@ export default function RoomsListScreen({ navigation }: any) {
         }
       />
 
-      {/* ── Invite Code Modal ── */}
+      {/* ── Password Modal ── */}
       {codeModal.visible && (
         <View style={s.modalOverlay}>
           <View style={s.modalCard}>
             <Text style={s.modalTitle}>Join {codeModal.roomName}</Text>
-            <Text style={s.modalSub}>This room requires an invite code</Text>
+            <Text style={s.modalSub}>This room requires a password</Text>
             <Input
               value={inviteCode}
               onChangeText={(t) => setInviteCode(t.toUpperCase().slice(0, 6))}
-              placeholder="Enter 6‑char code"
+              placeholder="Enter 6‑char password"
               maxLength={6}
               autoCapitalize="characters"
               autoFocus
@@ -138,9 +138,9 @@ export default function RoomsListScreen({ navigation }: any) {
                 style={[s.modalJoin, inviteCode.length < 6 && { opacity: 0.4 }]}
                 disabled={inviteCode.length < 6}
                 onPress={async () => {
-                  await joinRoom({ roomId: codeModal.roomId as any, userId: userId as any, code: inviteCode });
+                  await joinRoom({ roomId: codeModal.roomId as any, userId: userId as any, password: inviteCode });
                   setCodeModal({ visible: false }); setInviteCode('');
-                  navigation.navigate('Room', { roomId: codeModal.roomId, name: codeModal.roomName });
+                  navigation.navigate('Room', { roomId: codeModal.roomId, name: codeModal.roomName, password: inviteCode });
                 }}
               >
                 <Text style={s.modalJoinText}>Join</Text>

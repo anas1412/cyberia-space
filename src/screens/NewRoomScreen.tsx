@@ -16,7 +16,7 @@ export default function NewRoomScreen({ navigation }: any) {
   const { userId } = useAuth();
   const [name, setName] = useState('');
   const [topic, setTopic] = useState('');
-  const [roomType, setRoomType] = useState<'public' | 'invite' | 'hidden'>('public');
+  const [roomType, setRoomType] = useState<'public' | 'private' | 'hidden'>('public');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -54,7 +54,7 @@ export default function NewRoomScreen({ navigation }: any) {
           </View>
 
           <View style={s.toggleRow}>
-            {(['public', 'invite', 'hidden'] as const).map((t) => (
+            {(['public', 'private', 'hidden'] as const).map((t) => (
               <TouchableOpacity
                 key={t}
                 style={[s.seg, roomType === t && s.segActive]}
@@ -63,7 +63,7 @@ export default function NewRoomScreen({ navigation }: any) {
                 activeOpacity={0.8}
               >
                 <Text style={[s.segText, roomType === t && s.segTextActive]}>
-                  {t === 'public' ? 'Public' : t === 'invite' ? 'Invite' : 'Hidden'}
+                  {t === 'public' ? 'Public' : t === 'private' ? 'Private' : 'Hidden'}
                   {hasRoom ? ' (taken)' : ''}
                 </Text>
               </TouchableOpacity>
@@ -73,9 +73,9 @@ export default function NewRoomScreen({ navigation }: any) {
           <Text style={s.desc}>
             {roomType === 'public'
               ? 'Anyone can discover and join.'
-              : roomType === 'invite'
-                ? 'Listed in directory. Join by invite code or guest link.'
-                : 'Unlisted. Only accessible via guest link.'}
+              : roomType === 'private'
+                ? 'Listed in directory. Requires password to join.'
+                : 'Unlisted. Only accessible via invite link.'}
           </Text>
 
           <View style={s.info}>
@@ -84,7 +84,7 @@ export default function NewRoomScreen({ navigation }: any) {
               { Icon: Clock, text: 'All messages dissolve after 24 hours' },
               roomType === 'hidden'
                 ? { Icon: Home, text: 'Your room is unlisted, reachable only by link' }
-                : { Icon: Users, text: 'Discoverable and joinable via code or link' },
+                : { Icon: Users, text: 'Discoverable and joinable via invite link' },
             ].map((item, i) => (
               <View key={i} style={s.infoRow}>
                 <item.Icon size={16} color={colors.textSecondary} strokeWidth={2} />

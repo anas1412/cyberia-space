@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
-import { X, Trash2, Copy, Link, Plus, Trash } from 'lucide-react-native';
+import { X, Trash2, Copy, RefreshCw, Check } from 'lucide-react-native';
 import { useMutation, useQuery } from 'convex/react';
 
 async function copyToClipboard(text: string) {
@@ -29,25 +29,22 @@ interface Props {
   createdAt?: number;
 }
 
+const INVITE_BASE = 'https://chat.cyberiaspace.app/invite';
+
 export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId, userId, roomName, roomTopic, roomType, createdAt }: Props) {
   const [name, setName] = useState(roomName);
   const [topic, setTopic] = useState(roomTopic ?? '');
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [selectedType, setSelectedType] = useState(roomType);
+  const [copiedField, setCopiedField] = useState<'link' | 'password' | null>(null);
 
   const updateRoom = useMutation(api.rooms.update);
   const deleteRoom = useMutation(api.rooms.remove);
   const unbanUser = useMutation(api.rooms.unban);
   const bans = useQuery(api.rooms.listBans, { roomId }) ?? [];
-  const generateInvite = useMutation(api.rooms.generateInvite);
-  const revokeInvite = useMutation(api.rooms.revokeInvite);
-  const createGuestLink = useMutation(api.rooms.createGuestLink);
-  const revokeGuestLink = useMutation(api.rooms.revokeGuestLink);
-  const invites = useQuery(api.rooms.listInvites, roomId ? { roomId, userId: userId as any } : 'skip') ?? [];
-  const guestLinks = useQuery(api.rooms.listGuestLinks, roomId ? { roomId, userId: userId as any } : 'skip') ?? [];
-  const [inviteMulti, setInviteMulti] = useState(false);
-  const [inviteExpiry, setInviteExpiry] = useState(24);
+  const password = useQuery(api.rooms.getPassword, roomId ? { roomId, userId: userId as any } : 'skip');
+  const regeneratePw = useMutation(api.rooms.regeneratePassword);
 
   useEffect(() => {
     if (visible) {
@@ -55,6 +52,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
       setTopic(roomTopic ?? '');
       setSelectedType(roomType);
       setConfirmDelete(false);
+      setCopiedField(null);
     }
   }, [visible, roomName, roomTopic, roomType]);
 
@@ -75,6 +73,17 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
     }
   }
 
+  async function handleCopy(text: string, field: 'link' | 'password') {
+    await copyToClipboard(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 1500);
+  }
+
+  const inviteLink = selectedType === 'private' && password
+    ? `${INVITE_BASE}/${roomId}/${password}`
+    : `${INVITE_BASE}/${roomId}`;
+  const inviteShort = inviteLink.replace('https://', '').replace('http://', '');
+
   return (
     <ResponsiveSheet visible={visible} onClose={onClose}>
       <View style={s.header}>
@@ -91,7 +100,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
           {roomType && (
             <View style={[s.badge, roomType === 'hidden' && s.badgePrivate]}>
               <Text style={[s.badgeText, roomType === 'hidden' && s.badgeTextPrivate]}>
-                {roomType === 'public' ? 'Public' : roomType === 'invite' ? 'Invite' : 'Hidden'}
+                {roomType === 'public' ? 'Public' : roomType === 'private' ? 'Private' : 'Hidden'}
               </Text>
             </View>
           )}
@@ -101,6 +110,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
             </Text>
           )}
         </View>
+
         {/* ── Room info ── */}
         <View style={s.section}>
           <Text style={s.sectionTitle}>Room info</Text>
@@ -108,7 +118,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
           <Input value={topic} onChangeText={setTopic} placeholder="Optional topic" maxLength={100} />
 
           <View style={s.toggleRow}>
-            {(['public', 'invite', 'hidden'] as const).map((t) => (
+            {(['public', 'private', 'hidden'] as const).map((t) => (
               <TouchableOpacity
                 key={t}
                 style={[s.seg, selectedType === t && s.segActive]}
@@ -116,7 +126,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
                 activeOpacity={0.8}
               >
                 <Text style={[s.segText, selectedType === t && s.segTextActive]}>
-                  {t === 'public' ? 'Public' : t === 'invite' ? 'Invite' : 'Hidden'}
+                  {t === 'public' ? 'Public' : t === 'private' ? 'Private' : 'Hidden'}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -125,79 +135,40 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
           <Button label="Save changes" onPress={handleSave} loading={saving} loadingLabel="Saving…" disabled={!name.trim()} />
         </View>
 
-        {/* ── Invite codes (invite rooms only) ── */}
-        {roomType === 'invite' && (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Invite Codes · {invites.length}</Text>
-            {invites.map((inv: any) => (
-              <View key={inv._id} style={s.inviteRow}>
-                <View>
-                  <Text style={s.codeText}>{inv.code}</Text>
-                  <Text style={s.codeMeta}>
-                    {inv.multiUse ? 'Multi-use' : 'Single use'} · {inv.useCount} used · Expires {new Date(inv.expiresAt).toLocaleDateString()}
-                  </Text>
-                </View>
-                <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                  <TouchableOpacity style={s.copyBtn} onPress={() => copyToClipboard(inv.code)}>
-                    <Copy size={14} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={s.copyBtn} onPress={() => revokeInvite({ roomId, userId: userId as any, inviteId: inv._id })}>
-                    <Trash size={14} color={colors.error} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-              <TouchableOpacity style={[s.optBtn, !inviteMulti && s.optBtnActive]} onPress={() => setInviteMulti(false)}>
-                <Text style={[s.optBtnText, !inviteMulti && s.optBtnTextActive]}>Single use</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[s.optBtn, inviteMulti && s.optBtnActive]} onPress={() => setInviteMulti(true)}>
-                <Text style={[s.optBtnText, inviteMulti && s.optBtnTextActive]}>Multi-use</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-              {[1, 24, 168, 0].map((h) => (
-                <TouchableOpacity key={h} style={[s.optBtn, inviteExpiry === h && s.optBtnActive]} onPress={() => setInviteExpiry(h)}>
-                  <Text style={[s.optBtnText, inviteExpiry === h && s.optBtnTextActive]}>{h === 0 ? 'Never' : h === 1 ? '1h' : h === 24 ? '24h' : '7d'}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <TouchableOpacity style={s.genBtn} onPress={async () => {
-              await generateInvite({ roomId, userId: userId as any, multiUse: inviteMulti, expiresInHours: inviteExpiry || undefined });
-            }}>
-              <Plus size={14} color={colors.accent} />
-              <Text style={s.genBtnText}>Generate code</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* ── Guest links (all types) ── */}
+        {/* ── Access ── */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>Guest Links · {guestLinks.length}</Text>
-          {guestLinks.map((gl: any) => (
-            <View key={gl._id} style={s.inviteRow}>
+          {selectedType === 'private' && (
+            <View style={s.passwordRow}>
               <View style={{ flex: 1 }}>
-                <Text style={s.codeText} numberOfLines={1}>{gl.token.slice(0, 12)}…</Text>
-                <Text style={s.codeMeta}>
-                  {gl.multiUse ? 'Multi-use' : 'Single use'} · {gl.useCount} used · Expires {new Date(gl.expiresAt).toLocaleDateString()}
-                </Text>
+                <Text style={s.passwordLabel}>Password</Text>
+                <Text style={s.passwordValue}>{password}</Text>
               </View>
-              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                <TouchableOpacity style={s.copyBtn} onPress={() => copyToClipboard(`https://chat.cyberiaspace.app/guest/${gl.token}`)}>
-                  <Copy size={14} color={colors.textSecondary} />
-                </TouchableOpacity>
-                <TouchableOpacity style={s.copyBtn} onPress={() => revokeGuestLink({ roomId, userId: userId as any, guestId: gl._id })}>
-                  <Trash size={14} color={colors.error} />
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity style={s.copyBtn} onPress={() => handleCopy(password ?? '', 'password')}>
+                {copiedField === 'password'
+                  ? <Check size={14} color="#4ade80" />
+                  : <Copy size={14} color={colors.textSecondary} />}
+              </TouchableOpacity>
+              <TouchableOpacity style={s.copyBtn} onPress={async () => {
+                const res = await regeneratePw({ roomId, userId: userId as any });
+                Alert.alert('New password', res.password);
+              }}>
+                <RefreshCw size={14} color={colors.textSecondary} />
+              </TouchableOpacity>
             </View>
-          ))}
-          <TouchableOpacity style={s.genBtn} onPress={async () => {
-            await createGuestLink({ roomId, userId: userId as any, multiUse: inviteMulti, expiresInHours: inviteExpiry || undefined });
-          }}>
-            <Link size={14} color={colors.accent} />
-            <Text style={s.genBtnText}>Generate guest link</Text>
-          </TouchableOpacity>
+          )}
+          {inviteLink && (
+            <View style={s.inviteLinkRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.passwordLabel}>Invite Link</Text>
+                <Text style={s.inviteLinkText} numberOfLines={1}>{inviteShort}</Text>
+              </View>
+              <TouchableOpacity style={s.copyBtn} onPress={() => handleCopy(inviteLink, 'link')}>
+                {copiedField === 'link'
+                  ? <Check size={14} color="#4ade80" />
+                  : <Copy size={14} color={colors.textSecondary} />}
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* ── Banned ── */}
@@ -273,13 +244,6 @@ const s = StyleSheet.create({
   badgeText: { color: colors.accent, fontSize: fontSize.caption, fontWeight: fontWeight.semibold },
   badgeTextPrivate: { color: colors.textSecondary },
   metaDate: { fontSize: fontSize.caption, color: colors.textMuted },
-  idRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, paddingHorizontal: spacing.lg,
-    borderWidth: 1, borderColor: colors.border,
-  },
-  idLabel: { fontSize: fontSize.small, color: colors.textSecondary },
-  idValue: { fontSize: fontSize.caption, color: colors.textMuted, maxWidth: '60%' },
 
   toggleRow: {
     flexDirection: 'row', backgroundColor: colors.elevated,
@@ -292,7 +256,27 @@ const s = StyleSheet.create({
 
   empty: { color: colors.textMuted, fontSize: fontSize.body, paddingVertical: spacing.sm },
 
-  // Banned — reuse styles from MembersSheet
+  inviteLinkRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  inviteLinkText: { fontSize: fontSize.body, color: colors.text, fontFamily: 'monospace', marginTop: 2 },
+
+  passwordRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  passwordLabel: { fontSize: fontSize.small, color: colors.textMuted, marginBottom: 2 },
+  passwordValue: { fontSize: fontSize.title, fontWeight: fontWeight.bold, color: colors.accent, letterSpacing: 2 },
+
+  copyBtn: {
+    width: 32, height: 32, borderRadius: radius.sm,
+    backgroundColor: colors.elevated, borderWidth: 1, borderColor: colors.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
+
   banRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, paddingHorizontal: spacing.lg,
@@ -302,7 +286,6 @@ const s = StyleSheet.create({
   unbanBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.sm, backgroundColor: colors.accentBg },
   unbanText: { color: colors.accent, fontSize: fontSize.small, fontWeight: fontWeight.semibold },
 
-  // Delete
   deleteBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
     paddingVertical: spacing.md, borderRadius: radius.md,
@@ -317,7 +300,6 @@ const s = StyleSheet.create({
   confirmDeleteBtn: { flex: 1, backgroundColor: colors.error, borderRadius: radius.md, padding: spacing.lg, alignItems: 'center' },
   confirmDeleteText: { color: '#fff', fontSize: fontSize.title, fontWeight: fontWeight.semibold },
 
-  // Invite codes & guest links
   inviteRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, paddingHorizontal: spacing.lg,
@@ -325,16 +307,6 @@ const s = StyleSheet.create({
   },
   codeText: { fontSize: fontSize.title, fontWeight: fontWeight.bold, color: colors.text, letterSpacing: 1 },
   codeMeta: { fontSize: fontSize.caption, color: colors.textMuted, marginTop: 2 },
-  copyBtn: {
-    width: 32, height: 32, borderRadius: radius.sm,
-    backgroundColor: colors.elevated, borderWidth: 1, borderColor: colors.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  copyText: { color: colors.accent, fontSize: fontSize.small, fontWeight: fontWeight.semibold },
-  optBtn: { flex: 1, paddingVertical: spacing.sm, alignItems: 'center', borderRadius: radius.sm, backgroundColor: colors.elevated, borderWidth: 1, borderColor: colors.border },
-  optBtnActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  optBtnText: { fontSize: fontSize.caption, fontWeight: fontWeight.medium, color: colors.textSecondary },
-  optBtnTextActive: { color: '#000', fontWeight: fontWeight.semibold },
   genBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
     paddingVertical: spacing.md, borderRadius: radius.md,

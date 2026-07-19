@@ -17,7 +17,7 @@ import MembersSheet from '../components/MembersSheet';
 import Loading from '../components/Loading';
 
 export default function RoomScreen({ route, navigation }: any) {
-  const { roomId, name } = route.params;
+  const { roomId, name, password } = route.params;
   const { userId } = useAuth();
   const [input, setInput] = useState('');
   const [joinTime] = useState(() => Date.now());
@@ -43,7 +43,7 @@ export default function RoomScreen({ route, navigation }: any) {
   useEffect(() => {
     if (!userId) return;
     setJoinError(null);
-    joinRoom({ userId: userId as any, roomId }).then((res: any) => {
+    joinRoom({ userId: userId as any, roomId, password: password ?? undefined }).then((res: any) => {
       if (res?.error) setJoinError(res.error);
     });
     const interval = setInterval(() => ping({ userId: userId as any, roomId }), 30000);

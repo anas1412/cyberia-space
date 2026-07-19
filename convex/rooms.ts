@@ -1,17 +1,17 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-const ROOM_TYPES = v.union(v.literal("public"), v.literal("invite"), v.literal("hidden"));
+const ROOM_TYPES = v.union(v.literal("public"), v.literal("private"), v.literal("hidden"));
 
-// List public + invite rooms
+// List public + private rooms
 export const listPublic = query({
   args: { userId: v.optional(v.id("users")) },
   handler: async (ctx, { userId }) => {
-    const [publicRooms, inviteRooms] = await Promise.all([
+    const [publicRooms, privateRooms] = await Promise.all([
       ctx.db.query("rooms").withIndex("by_type", (q) => q.eq("type", "public")).order("desc").take(50),
-      ctx.db.query("rooms").withIndex("by_type", (q) => q.eq("type", "invite")).order("desc").take(50),
+      ctx.db.query("rooms").withIndex("by_type", (q) => q.eq("type", "private")).order("desc").take(50),
     ]);
-    let rooms = [...publicRooms, ...inviteRooms];
+    let rooms = [...publicRooms, ...privateRooms];
 
     // Include owner's own room even if hidden
     if (userId) {
@@ -31,8 +31,8 @@ export const listPublic = query({
       const owner = await ctx.db.get(room.ownerId);
       return {
         ...room,
-        ownerHandle: owner?.handle ?? 'unknown',
-        ownerColor: owner?.avatarColor ?? '#888',
+        ownerHandle: owner?.handle ?? "unknown",
+        ownerColor: owner?.avatarColor ?? "#888",
       };
     }));
   },
@@ -46,7 +46,7 @@ export const get = query({
   },
 });
 
-// Returns the user's own room if it exists, cleans stale privateRoomId
+// Returns the user's own room if it exists
 export const getMyRoom = query({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
@@ -67,30 +67,34 @@ export const create = mutation({
   },
   handler: async (ctx, { userId, name, type, topic }) => {
     if (!name.trim()) throw new Error("Room name required");
+
     // Clean stale privateRoomId
     const user = await ctx.db.get(userId);
     if (user?.privateRoomId) {
       const ref = await ctx.db.get(user.privateRoomId);
       if (!ref) await ctx.db.patch(userId, { privateRoomId: undefined });
     }
+
     // One room per user
     const existing = await ctx.db
       .query("rooms")
       .withIndex("by_owner", (q) => q.eq("ownerId", userId))
       .first();
     if (existing) {
-      // Sync privateRoomId if missing (legacy room)
       if (user && !user.privateRoomId) {
         await ctx.db.patch(userId, { privateRoomId: existing._id });
       }
       return { roomId: existing._id, name: existing.name };
     }
 
+    const password = type === "private" ? generateCode() : undefined;
+
     const roomId = await ctx.db.insert("rooms", {
       name: name.slice(0, 40),
       topic: topic?.slice(0, 100),
       ownerId: userId,
       type,
+      password,
       memberCount: 0,
       createdAt: Date.now(),
     });
@@ -139,25 +143,17 @@ export const getActiveGuests = query({
 
 // Join a room (set presence)
 export const join = mutation({
-  args: { userId: v.id("users"), roomId: v.id("rooms"), code: v.optional(v.string()) },
-  handler: async (ctx, { userId, roomId, code }) => {
+  args: { userId: v.id("users"), roomId: v.id("rooms"), password: v.optional(v.string()) },
+  handler: async (ctx, { userId, roomId, password }) => {
     const room = await ctx.db.get(roomId);
     if (!room) throw new Error("Room not found");
 
-    // Access control
     const isOwner = room.ownerId === userId;
 
-    if (room.type === "invite" && !isOwner) {
-      if (!code) return { error: "Invite code required" };
-      const invite = await ctx.db
-        .query("roomInvites")
-        .withIndex("by_code", (q) => q.eq("code", code.toUpperCase()))
-        .first();
-      if (!invite) return { error: "Invalid invite code" };
-      if (invite.roomId !== roomId) return { error: "Invalid invite code" };
-      if (invite.expiresAt < Date.now()) return { error: "Invite code expired" };
-      if (!invite.multiUse && invite.useCount >= 1) return { error: "Invite code already used" };
-      await ctx.db.patch(invite._id, { useCount: invite.useCount + 1 });
+    // Access control
+    if (room.type === "private" && !isOwner) {
+      if (!password) return { error: "Password required" };
+      if (password !== room.password) return { error: "Wrong password" };
     }
 
     if (room.type === "hidden" && !isOwner) {
@@ -284,11 +280,47 @@ export const update = mutation({
     if (!room) throw new Error("Room not found");
     if (room.ownerId !== userId) throw new Error("Not the owner");
     const patch: any = {};
-    if (name) { if (!name.trim()) throw new Error("Room name required"); patch.name = name.slice(0, 40); }
+    if (name) {
+      if (!name.trim()) throw new Error("Room name required");
+      patch.name = name.slice(0, 40);
+    }
     if (topic !== undefined) patch.topic = topic.slice(0, 100) || undefined;
-    if (type) patch.type = type;
+    if (type) {
+      patch.type = type;
+      // Generate password when switching to private
+      if (type === "private" && room.type !== "private") {
+        patch.password = generateCode();
+      }
+      // Delete password when leaving private
+      if (type !== "private" && room.password) {
+        patch.password = undefined;
+      }
+    }
     await ctx.db.patch(roomId, patch);
     return { success: true };
+  },
+});
+
+// Get room password (owner only)
+export const getPassword = query({
+  args: { roomId: v.id("rooms"), userId: v.id("users") },
+  handler: async (ctx, { roomId, userId }) => {
+    const room = await ctx.db.get(roomId);
+    if (!room || room.ownerId !== userId) return null;
+    return room.password ?? null;
+  },
+});
+
+// Regenerate room password (owner only)
+export const regeneratePassword = mutation({
+  args: { roomId: v.id("rooms"), userId: v.id("users") },
+  handler: async (ctx, { roomId, userId }) => {
+    const room = await ctx.db.get(roomId);
+    if (!room) throw new Error("Room not found");
+    if (room.ownerId !== userId) throw new Error("Not the owner");
+    const password = generateCode();
+    await ctx.db.patch(roomId, { password });
+    return { password };
   },
 });
 
@@ -300,48 +332,35 @@ export const remove = mutation({
     if (!room) throw new Error("Room not found");
     if (room.ownerId !== userId) throw new Error("Not the owner");
 
-    // Clear owner's privateRoomId
     const owner = await ctx.db.get(userId);
     if (owner?.privateRoomId === roomId) {
       await ctx.db.patch(userId, { privateRoomId: undefined });
     }
 
-    // Delete all messages
     const messages = await ctx.db
       .query("messages")
       .withIndex("by_room_time", (q) => q.eq("roomId", roomId))
       .take(500);
     for (const m of messages) await ctx.db.delete(m._id);
 
-    // Delete presence
     const presence = await ctx.db
       .query("presence")
       .withIndex("by_room", (q) => q.eq("roomId", roomId))
       .collect();
     for (const p of presence) await ctx.db.delete(p._id);
 
-    // Delete bans
     const bans = await ctx.db
       .query("roomBans")
       .withIndex("by_room", (q) => q.eq("roomId", roomId))
       .collect();
     for (const b of bans) await ctx.db.delete(b._id);
 
-    // Delete invites
-    const invites = await ctx.db
-      .query("roomInvites")
-      .withIndex("by_room", (q) => q.eq("roomId", roomId))
-      .collect();
-    for (const i of invites) await ctx.db.delete(i._id);
-
-    // Delete guest sessions
     const guests = await ctx.db
       .query("guestSessions")
       .withIndex("by_room", (q) => q.eq("roomId", roomId))
       .collect();
     for (const g of guests) await ctx.db.delete(g._id);
 
-    // Delete room
     await ctx.db.delete(roomId);
     return { success: true };
   },
@@ -423,90 +442,8 @@ export const listBans = query({
   },
 });
 
-// ── Invite Codes ──
-
-// Look up a code (public — for join preview)
-export const lookupCode = query({
-  args: { code: v.string() },
-  handler: async (ctx, { code }) => {
-    const invite = await ctx.db
-      .query("roomInvites")
-      .withIndex("by_code", (q) => q.eq("code", code.toUpperCase()))
-      .first();
-    if (!invite) return null;
-    if (invite.expiresAt < Date.now()) return null;
-    if (!invite.multiUse && invite.useCount >= 1) return null;
-    const room = await ctx.db.get(invite.roomId);
-    if (!room) return null;
-    return { roomId: room._id, roomName: room.name, memberCount: room.memberCount };
-  },
-});
-
-// Generate an invite code (owner only, invite rooms only)
-export const generateInvite = mutation({
-  args: {
-    roomId: v.id("rooms"),
-    userId: v.id("users"),
-    multiUse: v.boolean(),
-    expiresInHours: v.optional(v.number()), // null = never
-  },
-  handler: async (ctx, { roomId, userId, multiUse, expiresInHours }) => {
-    const room = await ctx.db.get(roomId);
-    if (!room) throw new Error("Room not found");
-    if (room.ownerId !== userId) throw new Error("Not the owner");
-    if (room.type !== "invite") throw new Error("Invite codes only available for invite rooms");
-
-    const code = generateCode();
-    const now = Date.now();
-    const expiresAt = expiresInHours ? now + expiresInHours * 60 * 60 * 1000 : now + 24 * 60 * 60 * 1000;
-
-    await ctx.db.insert("roomInvites", {
-      roomId,
-      code,
-      createdBy: userId,
-      multiUse,
-      useCount: 0,
-      expiresAt,
-      createdAt: now,
-    });
-
-    return { code, expiresAt };
-  },
-});
-
-// Revoke an invite code
-export const revokeInvite = mutation({
-  args: { roomId: v.id("rooms"), userId: v.id("users"), inviteId: v.id("roomInvites") },
-  handler: async (ctx, { roomId, userId, inviteId }) => {
-    const room = await ctx.db.get(roomId);
-    if (!room) throw new Error("Room not found");
-    if (room.ownerId !== userId) throw new Error("Not the owner");
-    const invite = await ctx.db.get(inviteId);
-    if (!invite || invite.roomId !== roomId) throw new Error("Invite not found");
-    await ctx.db.delete(inviteId);
-    return { success: true };
-  },
-});
-
-// List active invite codes for a room (owner only)
-export const listInvites = query({
-  args: { roomId: v.id("rooms"), userId: v.id("users") },
-  handler: async (ctx, { roomId, userId }) => {
-    const room = await ctx.db.get(roomId);
-    if (!room) return [];
-    if (room.ownerId !== userId) return [];
-    const invites = await ctx.db
-      .query("roomInvites")
-      .withIndex("by_room", (q) => q.eq("roomId", roomId))
-      .order("desc")
-      .collect();
-    return invites.filter((i) => i.expiresAt > Date.now());
-  },
-});
-
 // ── Guest Links ──
 
-// Generate a guest link (owner only, all room types)
 export const createGuestLink = mutation({
   args: {
     roomId: v.id("rooms"),
@@ -540,7 +477,6 @@ export const createGuestLink = mutation({
   },
 });
 
-// Consume a guest link (no auth required)
 export const consumeGuestLink = mutation({
   args: { token: v.string() },
   handler: async (ctx, { token }) => {
@@ -565,12 +501,12 @@ export const consumeGuestLink = mutation({
       avatarColor: session.avatarColor,
       roomId: session.roomId,
       roomName: room?.name ?? "Room",
+      roomPassword: room?.password ?? undefined,
       joinedAt: Date.now(),
     };
   },
 });
 
-// Leave as guest
 export const leaveGuest = mutation({
   args: { token: v.string() },
   handler: async (ctx, { token }) => {
@@ -585,7 +521,39 @@ export const leaveGuest = mutation({
   },
 });
 
-// List guest links for a room (owner only)
+export const joinAsGuest = mutation({
+  args: { roomId: v.id("rooms"), password: v.optional(v.string()) },
+  handler: async (ctx, { roomId, password }) => {
+    const room = await ctx.db.get(roomId);
+    if (!room) return { error: "Room not found" };
+    if (room.type === "hidden") return { error: "Cannot join this room" };
+    if (room.type === "private") {
+      if (!password) return { error: "Password required" };
+      if (password !== room.password) return { error: "Wrong password" };
+    }
+
+    const token = generateToken();
+    const handle = `guest_${token.slice(0, 6)}`;
+    const avatarColor = randomColor();
+    const now = Date.now();
+
+    await ctx.db.insert("guestSessions", {
+      token,
+      roomId,
+      handle,
+      avatarColor,
+      createdBy: room.ownerId,
+      multiUse: true,
+      useCount: 1,
+      joinedAt: now,
+      expiresAt: now + 24 * 60 * 60 * 1000,
+      active: true,
+    });
+
+    return { token, handle, avatarColor, roomId };
+  },
+});
+
 export const listGuestLinks = query({
   args: { roomId: v.id("rooms"), userId: v.id("users") },
   handler: async (ctx, { roomId, userId }) => {
@@ -600,7 +568,6 @@ export const listGuestLinks = query({
   },
 });
 
-// Revoke a guest link (owner only)
 export const revokeGuestLink = mutation({
   args: { roomId: v.id("rooms"), userId: v.id("users"), guestId: v.id("guestSessions") },
   handler: async (ctx, { roomId, userId, guestId }) => {
