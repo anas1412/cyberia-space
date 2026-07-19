@@ -41,7 +41,8 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_type", ["type"])
-    .index("by_owner", ["ownerId"]),
+    .index("by_owner", ["ownerId"])
+    .index("by_createdAt", ["createdAt"]),
 
   presence: defineTable({
     userId: v.id("users"),

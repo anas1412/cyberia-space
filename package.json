@@ -9,7 +9,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "verify": "npx tsc --noEmit && npx eslint . --fix"
+    "verify": "node --stack-size=8192 ./node_modules/.bin/tsc --noEmit && npx eslint . --fix"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -35,13 +35,13 @@
     "react-native-screens": "^4.25.2",
     "react-native-svg": "^15.15.5",
     "react-native-web": "^0.21.2",
-    "twilio": "^6.0.2",
-    "typescript": "~6.0.3"
+    "twilio": "^6.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.1.1",
     "eslint": "^10.7.0",
+    "typescript": "^5.8.3",
     "typescript-eslint": "^8.64.0"
   }
 }

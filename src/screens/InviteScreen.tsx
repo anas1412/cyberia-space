@@ -83,6 +83,10 @@ export default function InviteScreen({ route, navigation }: any) {
     return () => { if (guest?.token) leaveGuest({ token: guest.token }); };
   }, [guest?.token]);
 
+  const filtered = guest
+    ? messages.filter((m: any) => m.timestamp >= guest.joinedAt)
+    : messages;
+
   useEffect(() => {
     if (filtered.length > 0) setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
   }, [filtered.length]);
@@ -135,10 +139,6 @@ export default function InviteScreen({ route, navigation }: any) {
   function goBack() {
     navigation.navigate('Main' as never);
   }
-
-  const filtered = guest
-    ? messages.filter((m: any) => m.timestamp >= guest.joinedAt)
-    : messages;
 
   const isGuest = !isAuth && !!guest;
   const name = me?.handle ?? guest?.handle;

@@ -56,7 +56,7 @@ export default function MessageBubble({
             : <View style={{ width: avSize }} />
         )}
 
-        <View style={[s.bubbleCol, { maxWidth: bubbleMaxWidth }, isSelf && s.bubbleColSelf]}>
+        <View style={[s.bubbleCol, { maxWidth: bubbleMaxWidth as any }, isSelf && s.bubbleColSelf]}>
           {!isSelf && showHandle && showAv && (
             <Text style={[s.handle, { color: msg.avatarColor ?? colors.textMuted }]}>@{msg.handle ?? '…'}</Text>
           )}

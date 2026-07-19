@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Users, Lock, EyeOff, SlidersHorizontal } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useQuery, useMutation } from 'convex/react';
+import { usePaginatedQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
@@ -16,9 +16,22 @@ import SearchBar from '../components/SearchBar';
 import Loading from '../components/Loading';
 import Input from '../components/Input';
 
+function formatRelative(ts: number) {
+  const diff = Date.now() - ts;
+  if (diff < 60000) return 'now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
+  if (diff < 604800000) return `${Math.floor(diff / 86400000)}d`;
+  return `${Math.floor(diff / 604800000)}w`;
+}
+
 export default function RoomsListScreen({ navigation }: any) {
   const { user, userId } = useAuth();
-  const rooms = useQuery(api.rooms.listPublic, { userId: userId as any });
+  const { results: rooms, loadMore, isLoading, status } = usePaginatedQuery(
+    api.rooms.listPublic,
+    { userId: userId as any },
+    { initialNumItems: 20 },
+  );
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'public' | 'private'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'active'>('newest');
@@ -47,20 +60,19 @@ export default function RoomsListScreen({ navigation }: any) {
     AsyncStorage.setItem('rooms_filters', JSON.stringify({ typeFilter, sortBy, onlineOnly }));
   }, [typeFilter, sortBy, onlineOnly, loaded]);
 
+  const allRooms = rooms ?? [];
+  const myRoom = allRooms.find((r: any) => r.ownerHandle === user?.handle);
+
   const filtered = useMemo(() => {
-    let result = rooms ?? [];
+    let result = allRooms.filter((r: any) => r.ownerHandle !== user?.handle);
     if (typeFilter !== 'all') result = result.filter((r: any) => r.type === typeFilter);
     if (onlineOnly) result = result.filter((r: any) => r.memberCount > 0);
     if (query.trim()) result = result.filter((r: any) => r.name.toLowerCase().includes(query.toLowerCase()) || r.topic?.toLowerCase().includes(query.toLowerCase()));
     result = [...result].sort((a: any, b: any) => sortBy === 'active' ? b.memberCount - a.memberCount : b.createdAt - a.createdAt);
     return result;
-  }, [rooms, typeFilter, sortBy, onlineOnly, query]);
+  }, [allRooms, user?.handle, typeFilter, sortBy, onlineOnly, query]);
 
-  if (rooms === undefined) return <SafeAreaView style={s.container} edges={['top']}><ContentWrap><Header title="Rooms" /><Loading /></ContentWrap></SafeAreaView>;
-
-  const myRoom = filtered.find((r: any) => r.ownerHandle === user?.handle);
-  const otherRooms = filtered.filter((r: any) => r.ownerHandle !== user?.handle);
-  const sorted = myRoom ? [myRoom, ...otherRooms] : otherRooms;
+  if (isLoading && allRooms.length === 0) return <SafeAreaView style={s.container} edges={['top']}><ContentWrap><Header title="Rooms" /><Loading /></ContentWrap></SafeAreaView>;
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
@@ -72,10 +84,12 @@ export default function RoomsListScreen({ navigation }: any) {
         />
 
         <FlatList
-        data={sorted}
+        data={filtered}
         keyExtractor={(item: any) => item._id}
         contentContainerStyle={s.list}
         showsVerticalScrollIndicator={false}
+        onEndReached={() => { if (status === 'CanLoadMore') loadMore(20); }}
+        onEndReachedThreshold={0.5}
         ListHeaderComponent={
           <View style={s.listHead}>
             <View style={s.searchRow}>
@@ -137,6 +151,28 @@ export default function RoomsListScreen({ navigation }: any) {
                 </View>
               </View>
             )}
+            {!query.trim() && myRoom && (
+              <View>
+                <Text style={[sectionLabel, { marginBottom: spacing.sm }]}>My Room</Text>
+                <TouchableOpacity style={[card, s.roomCard]}
+                  onPress={() => navigation.navigate('Room', { roomId: myRoom._id, name: myRoom.name })}
+                  activeOpacity={0.8}>
+                  <DiceBearAvatar seed={myRoom.name} style="glass" size={40} bgColor={myRoom.ownerColor} />
+                  <View style={s.roomInfo}>
+                    <View style={s.nameRow}>
+                      <Text style={s.roomName} numberOfLines={1}>{myRoom.name}</Text>
+                      {myRoom.type === 'public' && <Users size={12} color={colors.textMuted} strokeWidth={2} />}
+                      {myRoom.type === 'private' && <Lock size={12} color={colors.textMuted} strokeWidth={2} />}
+                      {myRoom.type === 'hidden' && <EyeOff size={12} color={colors.textMuted} strokeWidth={2} />}
+                    </View>
+                    {myRoom.topic ? <Text style={s.roomTopic} numberOfLines={1}>{myRoom.topic}</Text> : null}
+                  </View>
+                  <View style={s.roomMeta}>
+                    {myRoom.memberCount > 0 && <Text style={s.memberCount}>{myRoom.memberCount} online</Text>}
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
             {!query.trim() && !myRoom && (
               <View>
                 <Text style={[sectionLabel, { marginBottom: spacing.sm }]}>My Room</Text>
@@ -149,15 +185,12 @@ export default function RoomsListScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
             )}
-            {!query.trim() && myRoom && <Text style={[sectionLabel, { marginBottom: spacing.sm }]}>My Room</Text>}
+            <Text style={[sectionLabel, { marginBottom: spacing.sm }]}>All Rooms</Text>
           </View>
         }
-        renderItem={({ item, index }: any) => {
+        renderItem={({ item }: any) => {
           const isMine = item.ownerHandle === user?.handle;
-          const showAllLabel = !query.trim() && index === (myRoom ? 1 : 0);
           return (
-            <View key={item._id}>
-              {showAllLabel && <Text style={[sectionLabel, { marginTop: spacing.md, marginBottom: spacing.sm }]}>All Rooms</Text>}
             <TouchableOpacity style={[card, s.roomCard]}
               onPress={() => {
                 if (item.type === 'private' && !isMine) {
@@ -179,10 +212,10 @@ export default function RoomsListScreen({ navigation }: any) {
                 <Text style={s.roomOwner}>by @{item.ownerHandle}</Text>
               </View>
               <View style={s.roomMeta}>
+                <Text style={s.roomTime}>{formatRelative(item.createdAt)}</Text>
                 {item.memberCount > 0 && <Text style={s.memberCount}>{item.memberCount} online</Text>}
               </View>
             </TouchableOpacity>
-            </View>
           );
         }}
         ListEmptyComponent={
@@ -194,8 +227,7 @@ export default function RoomsListScreen({ navigation }: any) {
             </View>
           ) : (
             <EmptyState
-              title={user?.privateRoomId ? "No other rooms" : "No rooms yet"}
-              subtitle={user?.privateRoomId ? "You already have your own" : undefined}
+              title="No rooms yet"
             />
           )
         }
@@ -241,8 +273,8 @@ export default function RoomsListScreen({ navigation }: any) {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  list: { padding: spacing.lg, gap: spacing.sm, paddingBottom: spacing.xxxl },
-  listHead: { gap: spacing.lg, marginBottom: spacing.sm },
+  list: { padding: spacing.lg, paddingBottom: spacing.xxxl },
+  listHead: { gap: spacing.lg, marginBottom: 0 },
   searchRow: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     marginTop: spacing.md, marginBottom: spacing.sm,
@@ -273,13 +305,15 @@ const s = StyleSheet.create({
 
   roomCard: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    minHeight: 72, marginBottom: spacing.sm,
   },
   roomInfo: { flex: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   roomName: { flexShrink: 1, fontSize: fontSize.title, fontWeight: fontWeight.semibold, color: colors.text },
   roomTopic: { fontSize: fontSize.small, color: colors.textSecondary, marginTop: 2 },
   roomOwner: { fontSize: fontSize.caption, color: colors.textMuted, marginTop: 2 },
-  roomMeta: {},
+  roomMeta: { alignItems: 'flex-end', gap: 2 },
+  roomTime: { fontSize: fontSize.caption, color: colors.textMuted },
   memberCount: { fontSize: fontSize.caption, color: colors.textMuted },
 
   createCard: {

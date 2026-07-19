@@ -65,7 +65,11 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
   async function handleSave() {
     if (!name.trim()) return;
     setSaving(true);
-    await updateRoom({ roomId, userId: userId as any, name: name.trim(), topic: topic.trim() || undefined, type: selectedType as any });
+    try {
+      await updateRoom({ roomId, userId: userId as any, name: name.trim(), topic: topic.trim() || undefined, type: selectedType as any });
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Failed to update room');
+    }
     setSaving(false);
   }
 
@@ -335,7 +339,7 @@ const s = StyleSheet.create({
   inviteChipText: { color: '#000', fontSize: fontSize.body, fontWeight: fontWeight.semibold },
 
   qrOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center', alignItems: 'center',
   },

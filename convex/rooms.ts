@@ -2,16 +2,37 @@ import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
 const ROOM_TYPES = v.union(v.literal("public"), v.literal("private"), v.literal("hidden"));
+const MAX_DISCOVERABLE_ROOMS = 100;
 
-// List public + private rooms
+async function discoverableRoomCount(ctx: any) {
+  const [pub, priv] = await Promise.all([
+    ctx.db.query("rooms").withIndex("by_type", (q: any) => q.eq("type", "public")).collect(),
+    ctx.db.query("rooms").withIndex("by_type", (q: any) => q.eq("type", "private")).collect(),
+  ]);
+  return pub.length + priv.length;
+}
+
+// List public + private rooms (paginated)
 export const listPublic = query({
-  args: { userId: v.optional(v.id("users")) },
-  handler: async (ctx, { userId }) => {
-    const [publicRooms, privateRooms] = await Promise.all([
-      ctx.db.query("rooms").withIndex("by_type", (q) => q.eq("type", "public")).order("desc").take(50),
-      ctx.db.query("rooms").withIndex("by_type", (q) => q.eq("type", "private")).order("desc").take(50),
-    ]);
-    let rooms = [...publicRooms, ...privateRooms];
+  args: {
+    userId: v.optional(v.id("users")),
+    paginationOpts: v.object({
+      numItems: v.number(),
+      cursor: v.union(v.string(), v.null()),
+      id: v.optional(v.number()),
+    }),
+  },
+  handler: async (ctx, { userId, paginationOpts }) => {
+    // Paginate all non-hidden rooms
+    const paginated = await ctx.db
+      .query("rooms")
+      .withIndex("by_createdAt")
+      .order("desc")
+      .paginate(paginationOpts);
+
+    const rooms = paginated.page.filter(
+      (r) => r.type === "public" || r.type === "private"
+    );
 
     // Include owner's own room even if hidden
     if (userId) {
@@ -19,15 +40,12 @@ export const listPublic = query({
         .query("rooms")
         .withIndex("by_owner", (q) => q.eq("ownerId", userId))
         .first();
-      if (myRoom && !rooms.some((r) => r._id === myRoom._id)) {
-        rooms.push(myRoom);
+      if (myRoom && myRoom.type === "hidden" && !rooms.some((r) => r._id === myRoom._id)) {
+        rooms.unshift(myRoom);
       }
     }
 
-    rooms.sort((a, b) => b.createdAt - a.createdAt);
-    rooms = rooms.slice(0, 50);
-
-    return await Promise.all(rooms.map(async (room) => {
+    const enriched = await Promise.all(rooms.map(async (room) => {
       const owner = await ctx.db.get(room.ownerId);
       return {
         ...room,
@@ -35,6 +53,12 @@ export const listPublic = query({
         ownerColor: owner?.avatarColor ?? "#888",
       };
     }));
+
+    return {
+      page: enriched,
+      isDone: paginated.isDone,
+      continueCursor: paginated.continueCursor,
+    };
   },
 });
 
@@ -85,6 +109,14 @@ export const create = mutation({
         await ctx.db.patch(userId, { privateRoomId: existing._id });
       }
       return { roomId: existing._id, name: existing.name };
+    }
+
+    // Enforce discoverable room cap
+    if (type === "public" || type === "private") {
+      const count = await discoverableRoomCount(ctx);
+      if (count >= MAX_DISCOVERABLE_ROOMS) {
+        throw new Error("Room limit reached. Create a hidden room instead.");
+      }
     }
 
     const password = type === "private" ? generateCode() : undefined;
@@ -285,7 +317,14 @@ export const update = mutation({
       patch.name = name.slice(0, 40);
     }
     if (topic !== undefined) patch.topic = topic.slice(0, 100) || undefined;
-    if (type) {
+    if (type && type !== room.type) {
+      // Enforce cap when switching into discoverable
+      if ((type === "public" || type === "private") && (room.type === "hidden")) {
+        const count = await discoverableRoomCount(ctx);
+        if (count >= MAX_DISCOVERABLE_ROOMS) {
+          throw new Error("Room limit reached. Keep your room hidden.");
+        }
+      }
       patch.type = type;
       // Generate password when switching to private
       if (type === "private" && room.type !== "private") {

@@ -39,13 +39,14 @@ function DesktopTabs({ dmUnread }: { dmUnread: number }) {
       dmUnread={dmUnread}
     >
       <Tab.Navigator
+        id="desktop-tabs"
         screenOptions={{
           headerShown: false,
           tabBarShowLabel: false,
           tabBarStyle: { display: 'none' },
         }}
         tabBar={(props) => {
-          jumpToRef.current = props.navigation.jumpTo;
+          jumpToRef.current = (props.navigation as any).jumpTo;
           const route = props.state.routes[props.state.index];
           if (route && route.name !== activeTab) {
             requestAnimationFrame(() => setActiveTab(route.name));
@@ -73,6 +74,7 @@ export default function MainTabs() {
 
   return (
     <Tab.Navigator
+      id="mobile-tabs"
       screenOptions={{
         headerShown: false,
         tabBarStyle: ts.tabBar,

@@ -43,9 +43,11 @@ export default function DMListScreen({ navigation }: any) {
         contentContainerStyle={s.list}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          <View>
-            <SearchBar value={query} onChangeText={setQuery} placeholder="Search messages…" />
-            {dms.length > 0 && <Text style={[sectionLabel, { marginTop: spacing.md, marginBottom: spacing.sm }]}>Direct Messages</Text>}
+          <View style={{ gap: spacing.lg }}>
+            <View style={{ marginTop: spacing.md, marginBottom: spacing.sm }}>
+              <SearchBar value={query} onChangeText={setQuery} placeholder="Search messages…" />
+            </View>
+            <Text style={[sectionLabel, { marginBottom: spacing.sm }]}>Direct Messages</Text>
           </View>
         }
         renderItem={({ item }: any) => (
@@ -53,7 +55,7 @@ export default function DMListScreen({ navigation }: any) {
             onPress={() => navigation.navigate('DM', { conversationId: item._id })}
             activeOpacity={0.8}>
             <View>
-              <DiceBearAvatar seed={item.other?.handle ?? '?'} style="croodles-neutral" size={48} bgColor={item.other?.avatarColor} />
+              <DiceBearAvatar seed={item.other?.handle ?? '?'} style="croodles-neutral" size={40} bgColor={item.other?.avatarColor} />
             </View>
             <View style={s.info}>
               <View style={s.topRow}>
@@ -76,7 +78,9 @@ export default function DMListScreen({ navigation }: any) {
           </TouchableOpacity>
         )}
         ListEmptyComponent={
-          query.trim() ? (
+          <View>
+            <Text style={[sectionLabel, { marginTop: spacing.md, marginBottom: spacing.sm }]}>Direct Messages</Text>
+            {query.trim() ? (
             <View style={{ paddingTop: 40 }}>
               <Text style={{ color: colors.textSecondary, fontSize: 15, textAlign: 'center' }}>
                 No results for "{query}"
@@ -89,7 +93,8 @@ export default function DMListScreen({ navigation }: any) {
               actionLabel="New message"
               onAction={() => navigation.navigate('NewDM')}
             />
-          )
+          )}
+          </View>
         }
       />
       </ContentWrap>
@@ -99,9 +104,9 @@ export default function DMListScreen({ navigation }: any) {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  list: { padding: spacing.lg, gap: spacing.sm, paddingBottom: spacing.xxxl },
+  list: { padding: spacing.lg, paddingBottom: spacing.xxxl },
 
-  dmCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  dmCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm },
 
   avatar: {
     width: 48, height: 48, borderRadius: radius.md,
