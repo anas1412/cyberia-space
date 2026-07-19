@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
 import { X, Trash2, Copy, RefreshCw, Check, QrCode } from 'lucide-react-native';
-import QRCodeSVG from 'react-native-qrcode-svg';
 import { useMutation, useQuery } from 'convex/react';
+
+let QRCodeSVG: any = null;
+if (Platform.OS === 'ios' || Platform.OS === 'android') {
+  QRCodeSVG = require('react-native-qrcode-svg');
+}
 
 async function copyToClipboard(text: string) {
   if (Platform.OS === 'web') {
@@ -169,14 +173,16 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
                 {copiedField === 'link' ? 'Copied!' : 'Copy invite link'}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={s.inviteChip}
-              onPress={() => setShowQR(true)}
-              activeOpacity={0.7}
-            >
-              <QrCode size={14} color="#000" />
-              <Text style={s.inviteChipText}>QR code</Text>
-            </TouchableOpacity>
+            {Platform.OS !== 'web' && (
+              <TouchableOpacity
+                style={s.inviteChip}
+                onPress={() => setShowQR(true)}
+                activeOpacity={0.7}
+              >
+                <QrCode size={14} color="#000" />
+                <Text style={s.inviteChipText}>QR code</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -221,8 +227,8 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
         </View>
       </ScrollView>
 
-      {/* QR Code Modal */}
-      {showQR && (
+      {/* QR Code Modal (native only) */}
+      {showQR && QRCodeSVG && (
         <View style={s.qrOverlay} onTouchEnd={() => setShowQR(false)}>
           <View style={s.qrCard} onTouchEnd={(e) => e.stopPropagation()}>
             <Text style={s.qrTitle}>{roomName}</Text>
