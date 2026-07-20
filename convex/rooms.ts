@@ -158,7 +158,7 @@ export const getPresence = query({
     const users = await Promise.all(
       live.map(async (p) => {
         const u = await ctx.db.get(p.userId);
-        return u ? { userId: p.userId, handle: u.handle, avatarColor: u.avatarColor, joinedAt: p.joinedAt } : null;
+        return u ? { userId: p.userId, handle: u.handle, avatarColor: u.avatarColor, joinedAt: p.joinedAt, isGuest: !!u.isGuest } : null;
       })
     );
     return users.filter(Boolean);
@@ -392,12 +392,19 @@ export const remove = mutation({
 });
 
 // Kick a user from the room (owner only)
+// For guests: deletes their presence, sessions, and user account
+// For regular users: just removes presence
 export const kick = mutation({
   args: { roomId: v.id("rooms"), ownerId: v.id("users"), userId: v.id("users") },
   handler: async (ctx, { roomId, ownerId, userId }) => {
     const room = await ctx.db.get(roomId);
     if (!room || room.ownerId !== ownerId) throw new Error("Not the owner");
     if (userId === ownerId) throw new Error("Cannot kick yourself");
+
+    const target = await ctx.db.get(userId);
+    const wasGuest = !!target?.isGuest;
+
+    // Remove presence
     const p = await ctx.db
       .query("presence")
       .withIndex("by_user_room", (q) => q.eq("userId", userId).eq("roomId", roomId))
@@ -406,7 +413,18 @@ export const kick = mutation({
       await ctx.db.delete(p._id);
       if (room.memberCount > 0) await ctx.db.patch(roomId, { memberCount: room.memberCount - 1 });
     }
-    return { success: true };
+
+    // If guest: destroy their account and sessions
+    if (wasGuest && target) {
+      const sessions = await ctx.db
+        .query("sessions")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      for (const s of sessions) await ctx.db.delete(s._id);
+      await ctx.db.delete(userId);
+    }
+
+    return { success: true, wasGuest };
   },
 });
 

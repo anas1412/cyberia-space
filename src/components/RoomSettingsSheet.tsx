@@ -16,6 +16,19 @@ async function copyToClipboard(text: string) {
     await Clipboard.setStringAsync(text);
   }
 }
+
+function confirm(message: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (Platform.OS === 'web') {
+      resolve(window.confirm(message));
+    } else {
+      Alert.alert('Confirm', message, [
+        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+        { text: 'OK', onPress: () => resolve(true) },
+      ]);
+    }
+  });
+}
 import { api } from '../../convex/_generated/api';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import ResponsiveSheet from './ResponsiveSheet';
@@ -86,6 +99,16 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
     await copyToClipboard(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 1500);
+  }
+
+  async function handleRegenerateLink() {
+    const ok = await confirm('Regenerate invite link? The old link will stop working.');
+    if (!ok) return;
+    const res = await regeneratePw({ roomId, userId: userId as any });
+    const newLink = `${INVITE_BASE}/${roomId}/${res.password}`;
+    await copyToClipboard(newLink);
+    setCopiedField('link');
+    setTimeout(() => setCopiedField(null), 2000);
   }
 
   const inviteLink = selectedType === 'private' && password
@@ -176,6 +199,14 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
               <Text style={s.inviteChipText}>
                 {copiedField === 'link' ? 'Copied!' : 'Copy invite link'}
               </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={s.inviteChipSecondary}
+              onPress={handleRegenerateLink}
+              activeOpacity={0.7}
+            >
+              <RefreshCw size={14} color={colors.textSecondary} />
+              <Text style={s.inviteChipSecondaryText}>Regenerate</Text>
             </TouchableOpacity>
             {Platform.OS !== 'web' && (
               <TouchableOpacity
@@ -329,7 +360,7 @@ const s = StyleSheet.create({
   confirmDeleteText: { color: '#fff', fontSize: fontSize.title, fontWeight: fontWeight.semibold },
 
   inviteChips: {
-    flexDirection: 'row', gap: spacing.sm,
+    flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap',
   },
   inviteChip: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
@@ -337,6 +368,14 @@ const s = StyleSheet.create({
     paddingVertical: spacing.md, paddingHorizontal: spacing.lg,
   },
   inviteChipText: { color: '#000', fontSize: fontSize.body, fontWeight: fontWeight.semibold },
+
+  inviteChipSecondary: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+    backgroundColor: colors.surface, borderRadius: radius.md,
+    paddingVertical: spacing.md, paddingHorizontal: spacing.lg,
+    borderWidth: 1, borderColor: colors.borderStrong,
+  },
+  inviteChipSecondaryText: { color: colors.textSecondary, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
 
   qrOverlay: {
     ...StyleSheet.absoluteFill,

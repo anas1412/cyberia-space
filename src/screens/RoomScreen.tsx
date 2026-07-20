@@ -15,26 +15,27 @@ import ChatInput from '../components/ChatInput';
 import RoomSettingsSheet from '../components/RoomSettingsSheet';
 import MembersSheet from '../components/MembersSheet';
 import Loading from '../components/Loading';
+import Input from '../components/Input';
 import useRoomChat from '../hooks/useRoomChat';
 
 export default function RoomScreen({ route, navigation }: any) {
-  const { roomId, password, fromInvite } = route.params ?? {};
-  const { userId, isGuest, loginAsGuest, logout } = useAuth();
+  const { roomId, password } = route.params ?? {};
+  const { userId, isGuest, isLoading, isLoggedIn } = useAuth();
   const [input, setInput] = useState('');
   const [joinTime] = useState(() => Date.now());
   const [sheetVisible, setSheetVisible] = useState(false);
   const [membersVisible, setMembersVisible] = useState(false);
   const [hasJoined, setHasJoined] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
-  const [creatingGuest, setCreatingGuest] = useState(false);
+  const [retryPassword, setRetryPassword] = useState('');
   const listRef = useRef<FlatList>(null);
 
   const room = useQuery(api.rooms.get, { roomId });
+  const me = useQuery(api.users.get, userId ? { userId: userId as any } : 'skip');
   const sendMsg = useMutation(api.messages.send);
   const joinRoom = useMutation(api.rooms.join);
   const leaveRoom = useMutation(api.rooms.leave);
   const ping = useMutation(api.rooms.ping);
-  const joinAsTemporaryUser = useMutation(api.rooms.joinAsTemporaryUser);
 
   const { items, presence } = useRoomChat({
     roomId,
@@ -44,35 +45,30 @@ export default function RoomScreen({ route, navigation }: any) {
     joinTime,
   });
 
-  // Handle invite link: create temporary user account
+  // Join room (all users, always)
   useEffect(() => {
-    if (!fromInvite || userId || creatingGuest) return;
-
-    setCreatingGuest(true);
-    setJoinError(null);
-    joinAsTemporaryUser({ roomId, password: password ?? undefined }).then(async (res: any) => {
-      if (res?.error) {
-        if (res.error === 'Password required') setJoinError(res.error);
-        else setJoinError(res.error);
-        setCreatingGuest(false);
-        return;
-      }
-      // Login as guest using the created account
-      await loginAsGuest(res.token, res.userId);
-      setCreatingGuest(false);
-    });
-  }, [fromInvite, userId]);
-
-  // Join room for authenticated users
-  useEffect(() => {
-    if (!userId || fromInvite) return;
+    if (!userId) return;
     setJoinError(null);
     joinRoom({ userId: userId as any, roomId, password: password ?? undefined }).then((res: any) => {
       if (res?.error) setJoinError(res.error);
     });
     const interval = setInterval(() => ping({ userId: userId as any, roomId }), 30000);
-    return () => { clearInterval(interval); leaveRoom({ userId: userId as any, roomId }); };
-  }, [userId, roomId]);
+
+    const handleBeforeUnload = () => {
+      leaveRoom({ userId: userId as any, roomId });
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      }
+      leaveRoom({ userId: userId as any, roomId });
+    };
+  }, [userId, roomId, joinRoom, leaveRoom, ping]);
 
   // Group consecutive messages
   const msgIndices = new Map<string, { showHandle: boolean; showAvatar: boolean; showTime: boolean; isConsec: boolean }>();
@@ -92,32 +88,74 @@ export default function RoomScreen({ route, navigation }: any) {
 
   // Navigate away if room was deleted
   useEffect(() => {
-    if (room === null) navigation.goBack();
-  }, [room]);
+    if (room === null) {
+      if (isGuest) {
+        navigation.replace('Kicked', { roomName: room?.name ?? 'Room', isGuest: true, reason: 'room-deleted' });
+      } else if (isLoggedIn) {
+        navigation.goBack();
+      }
+      // else: guest was kicked AND room was deleted — me safety net handles it
+    }
+  }, [room, isGuest, isLoggedIn]);
+
+  // Detect kick: user account deleted (guest only — regular users keep their accounts)
+  useEffect(() => {
+    if (userId && me === null) {
+      navigation.replace('Kicked', { roomName: room?.name ?? 'Room', isGuest: true, reason: 'kicked' });
+    }
+  }, [me]);
 
   // Loading state
-  if (room === undefined || creatingGuest) {
+  if (room === undefined) {
     return (
       <SafeAreaView style={s.container} edges={['top']}>
         <ContentWrap variant="chat">
-          <Header title={fromInvite ? "Joining…" : "..."} onBack={() => navigation.goBack()} />
+          <Header title="..." onBack={() => navigation.navigate('Main')} />
           <Loading />
         </ContentWrap>
       </SafeAreaView>
     );
   }
 
-  // Error state
-  if (joinError) {
+  // Password error — show retry input
+  if (joinError && !hasJoined) {
+    const isPasswordError = joinError === 'Password required' || joinError === 'Wrong password';
     return (
       <SafeAreaView style={s.container} edges={['top']}>
         <ContentWrap variant="chat">
-          <Header title="Cannot join" onBack={() => navigation.goBack()} />
+          <Header title={room?.name ?? 'Join room'} onBack={() => navigation.navigate('Main')} />
           <View style={s.bannedWrap}>
             <Ban size={48} color={joinError === 'You are banned from this room' ? colors.error : colors.textSecondary} strokeWidth={1.5} />
-            <Text style={s.bannedTitle}>{joinError === 'You are banned from this room' ? 'You are banned' : 'Cannot join'}</Text>
+            <Text style={s.bannedTitle}>
+              {joinError === 'You are banned from this room' ? 'You are banned' : isPasswordError ? 'Password required' : 'Cannot join'}
+            </Text>
             <Text style={s.bannedSub}>{joinError}</Text>
-            <TouchableOpacity style={s.bannedBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+            {isPasswordError && (
+              <View style={s.retryRow}>
+                <Input
+                  value={retryPassword}
+                  onChangeText={setRetryPassword}
+                  placeholder="Enter password"
+                  autoCapitalize="characters"
+                  maxLength={6}
+                  style={s.retryInput}
+                />
+                <TouchableOpacity
+                  style={[s.retryBtn, !retryPassword.trim() && { opacity: 0.4 }]}
+                  disabled={!retryPassword.trim()}
+                  onPress={() => {
+                    setJoinError(null);
+                    joinRoom({ userId: userId as any, roomId, password: retryPassword.trim() }).then((res: any) => {
+                      if (res?.error) setJoinError(res.error);
+                    });
+                    setRetryPassword('');
+                  }}
+                >
+                  <Text style={s.retryBtnText}>Join</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <TouchableOpacity style={s.bannedBtn} onPress={() => navigation.navigate('Main')} activeOpacity={0.8}>
               <Text style={s.bannedBtnText}>Go back</Text>
             </TouchableOpacity>
           </View>
@@ -132,21 +170,6 @@ export default function RoomScreen({ route, navigation }: any) {
     if (!input.trim() || !userId) return;
     const text = input.trim(); setInput('');
     await sendMsg({ roomId, userId: userId as any, text });
-  }
-
-  async function handleLogin() {
-    // Store room info before logging out
-    const currentRoomId = roomId;
-    const currentRoomName = room?.name;
-
-    // Log out guest
-    await logout();
-
-    // Navigate to auth, then back to room
-    navigation.navigate('Auth', {
-      preAuthRoomId: currentRoomId,
-      preAuthRoomName: currentRoomName,
-    });
   }
 
   const allOnline = [...(presence as any[])];
@@ -166,23 +189,21 @@ export default function RoomScreen({ route, navigation }: any) {
       <ContentWrap variant="chat">
         <Header
           title={room?.name ?? '...'}
-          onBack={isGuest ? undefined : () => navigation.goBack()}
+          onBack={isGuest ? undefined : () => navigation.navigate('Main')}
           leftContent={isGuest ? (
-            <TouchableOpacity onPress={handleLogin} style={s.loginBtn}>
-              <Text style={s.loginBtnText}>Login</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Auth')} style={s.loginBtn} activeOpacity={0.8}>
+              <Text style={s.loginBtnText}>Log in</Text>
             </TouchableOpacity>
           ) : undefined}
           onTitlePress={isOwner ? () => setSheetVisible(true) : undefined}
           rightContent={presElements}
         />
 
-      {isGuest && (
-        <View style={s.banner}>
-          <Text style={s.bannerText}>
-            Guest session
-          </Text>
-        </View>
-      )}
+        {!isLoading && isGuest && (
+          <View style={s.guestBar}>
+            <Text style={s.guestBarText}>Guest session</Text>
+          </View>
+        )}
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.flex}>
         <FlatList
@@ -217,11 +238,11 @@ export default function RoomScreen({ route, navigation }: any) {
 
       </ContentWrap>
 
-      {!isGuest && userId && (
+      {userId && (
         <RoomSettingsSheet
           visible={sheetVisible}
           onClose={() => setSheetVisible(false)}
-          onDeleted={() => navigation.goBack()}
+          onDeleted={() => navigation.navigate('Main')}
           roomId={roomId}
           userId={userId as string}
           roomName={room?.name ?? '...'}
@@ -230,7 +251,7 @@ export default function RoomScreen({ route, navigation }: any) {
           createdAt={room?.createdAt}
         />
       )}
-      {!isGuest && userId && (
+      {userId && (
         <MembersSheet
           visible={membersVisible}
           onClose={() => setMembersVisible(false)}
@@ -261,19 +282,29 @@ const s = StyleSheet.create({
   },
   ttlText: { fontSize: fontSize.caption, color: colors.textMuted },
 
-  banner: {
-    paddingVertical: spacing.sm, paddingHorizontal: spacing.lg,
-    backgroundColor: colors.accentBg, borderBottomWidth: 1, borderBottomColor: 'rgba(232,168,64,0.15)',
-  },
-  bannerText: { fontSize: fontSize.caption, color: colors.textSecondary, textAlign: 'center' },
-  bannerLink: { color: colors.accent, fontWeight: fontWeight.semibold },
-
-  loginBtn: { backgroundColor: colors.accent, borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  loginBtnText: { color: '#000', fontSize: fontSize.small, fontWeight: fontWeight.semibold },
-
   bannedWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg, padding: spacing.xxl },
   bannedTitle: { fontSize: fontSize.header, fontWeight: fontWeight.bold, color: colors.text },
   bannedSub: { fontSize: fontSize.body, color: colors.textSecondary, textAlign: 'center' },
   bannedBtn: { backgroundColor: colors.surface, borderRadius: radius.md, paddingHorizontal: spacing.xxl, paddingVertical: spacing.md, borderWidth: 1, borderColor: colors.border },
   bannedBtnText: { color: colors.text, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
+
+  retryRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', width: '100%' },
+  retryInput: { flex: 1 },
+  retryBtn: { backgroundColor: colors.accent, borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.md },
+  retryBtnText: { color: '#000', fontSize: fontSize.title, fontWeight: fontWeight.semibold },
+
+  guestBar: {
+    paddingVertical: spacing.xs, paddingHorizontal: spacing.lg,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderBottomWidth: 1, borderBottomColor: colors.border,
+    alignItems: 'center',
+  },
+  guestBarText: { fontSize: fontSize.small, color: colors.textMuted },
+
+  loginBtn: {
+    height: 36, paddingHorizontal: spacing.md,
+    backgroundColor: colors.accent, borderRadius: radius.sm,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  loginBtnText: { color: '#000', fontSize: fontSize.small, fontWeight: fontWeight.semibold },
 });

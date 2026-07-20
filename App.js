@@ -14,6 +14,7 @@ import DMScreen      from './src/screens/DMScreen';
 import NewRoomScreen from './src/screens/NewRoomScreen';
 import NewDMScreen   from './src/screens/NewDMScreen';
 import InviteScreen  from './src/screens/InviteScreen';
+import KickedScreen  from './src/screens/KickedScreen';
 
 const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL ?? 'https://honorable-armadillo-17.eu-west-1.convex.cloud');
 const Stack  = createNativeStackNavigator();
@@ -50,6 +51,7 @@ export default function App() {
               <Stack.Screen name="NewRoom" component={NewRoomScreen} />
               <Stack.Screen name="NewDM"   component={NewDMScreen} />
               <Stack.Screen name="Invite"  component={InviteScreen} />
+              <Stack.Screen name="Kicked"  component={KickedScreen} />
             </Stack.Navigator>
           </NavigationContainer>
         </AuthProvider>

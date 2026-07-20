@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 
 const TK = 'cyberia_token';
 const UK = 'cyberia_userid';
+const LR = 'cyberia_last_room';
 
 function isWeb() {
   return Platform.OS === 'web';
@@ -38,5 +39,33 @@ export async function clearSession() {
   } else {
     await SecureStore.deleteItemAsync(TK);
     await SecureStore.deleteItemAsync(UK);
+  }
+}
+
+export async function saveLastRoom(roomId: string, password?: string) {
+  const data = JSON.stringify({ roomId, password });
+  if (isWeb()) {
+    localStorage.setItem(LR, data);
+  } else {
+    await SecureStore.setItemAsync(LR, data);
+  }
+}
+
+export async function getLastRoom(): Promise<{ roomId: string; password?: string } | null> {
+  if (isWeb()) {
+    const data = localStorage.getItem(LR);
+    if (!data) return null;
+    return JSON.parse(data);
+  }
+  const data = await SecureStore.getItemAsync(LR);
+  if (!data) return null;
+  return JSON.parse(data);
+}
+
+export async function clearLastRoom() {
+  if (isWeb()) {
+    localStorage.removeItem(LR);
+  } else {
+    await SecureStore.deleteItemAsync(LR);
   }
 }

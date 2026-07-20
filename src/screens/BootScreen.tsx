@@ -2,10 +2,11 @@ import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
+import { getLastRoom } from '../lib/storage';
 import { colors } from '../lib/theme';
 
 export default function BootScreen({ navigation }: any) {
-  const { isLoading, isLoggedIn } = useAuth();
+  const { isLoading, isLoggedIn, isGuest } = useAuth();
   const scale = useRef(new Animated.Value(0.8)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -18,9 +19,21 @@ export default function BootScreen({ navigation }: any) {
 
   useEffect(() => {
     if (!isLoading) {
-      setTimeout(() => navigation.replace(isLoggedIn ? 'Main' : 'Auth'), 800);
+      if (isGuest) {
+        getLastRoom().then(lastRoom => {
+          setTimeout(() => {
+            if (lastRoom) {
+              navigation.replace('Room', { roomId: lastRoom.roomId, password: lastRoom.password });
+            } else {
+              navigation.replace('Main');
+            }
+          }, 800);
+        });
+      } else {
+        setTimeout(() => navigation.replace(isLoggedIn ? 'Main' : 'Auth'), 800);
+      }
     }
-  }, [isLoading, isLoggedIn]);
+  }, [isLoading, isLoggedIn, isGuest]);
 
   return (
     <SafeAreaView style={styles.container}>
