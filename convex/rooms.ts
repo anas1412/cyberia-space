@@ -176,12 +176,12 @@ export const join = mutation({
 
     // Access control
     if (room.type === "private" && !isOwner) {
-      if (!password) return { error: "Password required" };
-      if (password !== room.password) return { error: "Wrong password" };
+      if (!password) throw new Error("Password required");
+      if (password !== room.password) throw new Error("Wrong password");
     }
 
     if (room.type === "hidden" && !isOwner) {
-      return { error: "Cannot join this room" };
+      throw new Error("Cannot join this room");
     }
 
     const existing = await ctx.db
@@ -194,7 +194,7 @@ export const join = mutation({
       .query("roomBans")
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
       .first();
-    if (ban) return { error: "You are banned from this room" };
+    if (ban) throw new Error("You are banned from this room");
 
     if (existing) {
       await ctx.db.patch(existing._id, { lastPing: Date.now() });
@@ -492,11 +492,11 @@ export const joinAsTemporaryUser = mutation({
   args: { roomId: v.id("rooms"), password: v.optional(v.string()) },
   handler: async (ctx, { roomId, password }) => {
     const room = await ctx.db.get(roomId);
-    if (!room) return { error: "Room not found" };
-    if (room.type === "hidden") return { error: "Cannot join this room" };
+    if (!room) throw new Error("Room not found");
+    if (room.type === "hidden") throw new Error("Cannot join this room");
     if (room.type === "private") {
-      if (!password) return { error: "Password required" };
-      if (password !== room.password) return { error: "Wrong password" };
+      if (!password) throw new Error("Password required");
+      if (password !== room.password) throw new Error("Wrong password");
     }
 
     const token = generateToken();

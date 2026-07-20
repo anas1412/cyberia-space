@@ -33,14 +33,13 @@ export default function InviteScreen({ route, navigation }: any) {
     if (creatingGuest) return;
     setCreatingGuest(true);
     joinAsTemporaryUser({ roomId, password: urlPassword ?? undefined }).then(async (res: any) => {
-      if (res?.error) {
-        setError(res.error === 'Password required' ? 'This room requires a password' : res.error);
-        setCreatingGuest(false);
-        return;
-      }
       await loginAsGuest(res.token, res.userId);
       saveLastRoom(roomId, urlPassword);
       navigation.replace('Room', { roomId, password: urlPassword });
+    }).catch((e: any) => {
+      const msg = e.data?.message ?? e.message;
+      setError(msg === 'Password required' ? 'This room requires a password' : msg);
+      setCreatingGuest(false);
     });
   }, [userId, isLoading, roomId]);
 

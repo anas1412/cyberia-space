@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Rect } from 'react-native-svg';
-import { useMutation, useAction } from 'convex/react';
+import { useAction, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { COUNTRIES } from '../lib/countries';
 import { useAuth } from '../context/AuthContext';
@@ -13,6 +13,7 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import DiceBearAvatar from '../components/DiceBearAvatar';
 import ColorPicker from '../components/ColorPicker';
+import { useAsyncAction } from '../hooks/useAsyncAction';
 
 type Step = 'phone' | 'otp' | 'handle';
 
@@ -28,9 +29,8 @@ export default function AuthScreen({ route, navigation }: any) {
   const [color, setColor] = useState('#E8A840');
   const [userId, setUserId] = useState('');
   const [token, setToken] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const [sentCode, setSentCode] = useState('');
+  const [localError, setLocalError] = useState('');
 
   const bypass = process.env.EXPO_PUBLIC_TWILIO_BYPASS === 'true';
   const otpRef = useRef<any>(null);
@@ -38,52 +38,44 @@ export default function AuthScreen({ route, navigation }: any) {
   const verifyOtp = useAction(api.auth.verifyOtp);
   const setHandleFn = useMutation(api.auth.setHandle);
 
+  const { execute: doSendOtp, loading: sending, error: sendError } = useAsyncAction(sendOtp);
+  const { execute: doVerifyOtp, loading: verifying, error: verifyError, reset: resetVerify } = useAsyncAction(verifyOtp);
+  const { execute: doSetHandle, loading: creating, error: handleError } = useAsyncAction(setHandleFn);
+
   async function handleSendOtp() {
     const cleaned = phone.replace(/\s/g, '');
-    if (cleaned.length < 8) { setError('Enter a valid phone number.'); return; }
-    setLoading(true); setError('');
-    try {
-      const res = await sendOtp({ phone: cleaned, bypass });
-      if (!res.success) { setError(res.error ?? 'Failed to send code.'); setLoading(false); return; }
-      if (res.code) setSentCode(res.code);
-      setStep('otp');
-    }
-    catch (e: any) { setError(e.data?.message ?? 'Failed to send code. Check your number.'); }
-    setLoading(false);
+    if (cleaned.length < 8) { setLocalError('Enter a valid phone number.'); return; }
+    setLocalError('');
+    const res = await doSendOtp({ phone: cleaned, bypass });
+    if (!res) return;
+    if (res.code) setSentCode(res.code);
+    setStep('otp');
   }
 
   async function handleVerify() {
-    setLoading(true); setError('');
-    try {
-      const res = await verifyOtp({ phone: phone.replace(/\s/g, ''), code: otp, platform: 'mobile', bypass });
-      if (!res.success) { setError(res.error ?? 'Invalid code'); setLoading(false); return; }
-      setUserId(res.userId as string); setToken(res.token as string);
-      if (res.isNewUser) setStep('handle');
-      else {
-        await login(res.token as string, res.userId as string);
-        if (preAuthRoomId) {
-          navigation.replace('Room', { roomId: preAuthRoomId, password: preAuthPassword ?? '' });
-        } else {
-          navigation.replace('Main');
-        }
-      }
-    } catch (e: any) { setError(e.message); }
-    setLoading(false);
-  }
-
-  async function handleSetHandle() {
-    setLoading(true); setError('');
-    try {
-      const res = await setHandleFn({ userId: userId as any, handle, avatarColor: color });
-      if ('error' in res && res.error) { setError(res.error); setLoading(false); return; }
-      await login(token, userId);
+    const res = await doVerifyOtp({ phone: phone.replace(/\s/g, ''), code: otp, platform: 'mobile', bypass });
+    if (!res) return;
+    setUserId(res.userId as string); setToken(res.token as string);
+    if (res.isNewUser) setStep('handle');
+    else {
+      await login(res.token as string, res.userId as string);
       if (preAuthRoomId) {
         navigation.replace('Room', { roomId: preAuthRoomId, password: preAuthPassword ?? '' });
       } else {
         navigation.replace('Main');
       }
-    } catch (e: any) { setError(e.message); }
-    setLoading(false);
+    }
+  }
+
+  async function handleSetHandle() {
+    const res = await doSetHandle({ userId: userId as any, handle, avatarColor: color });
+    if (!res) return;
+    await login(token, userId);
+    if (preAuthRoomId) {
+      navigation.replace('Room', { roomId: preAuthRoomId, password: preAuthPassword ?? '' });
+    } else {
+      navigation.replace('Main');
+    }
   }
 
   const steps: Step[] = ['phone', 'otp', 'handle'];
@@ -131,8 +123,8 @@ export default function AuthScreen({ route, navigation }: any) {
           {step === 'phone' && (
             <View style={s.form}>
               <PhoneInput value={phone} onChangeText={setPhone} onSubmitEditing={handleSendOtp} />
-              {error ? <Text style={s.error}>{error}</Text> : null}
-              <Button label="Send code" onPress={handleSendOtp} loading={loading} loadingLabel="Sending…" />
+              {sendError || localError ? <Text style={s.error}>{sendError || localError}</Text> : null}
+              <Button label="Send code" onPress={handleSendOtp} loading={sending} loadingLabel="Sending…" />
             </View>
           )}
 
@@ -157,9 +149,9 @@ export default function AuthScreen({ route, navigation }: any) {
                   onSubmitEditing={() => otp.length === 6 && handleVerify()}
                   style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0 }} />
               </View>
-              {error ? <Text style={s.error}>{error}</Text> : null}
-              <Button label="Continue" onPress={handleVerify} loading={loading} loadingLabel="Verifying…" disabled={otp.length !== 6} />
-              <TouchableOpacity onPress={() => { setStep('phone'); setOtp(''); setError(''); }} style={s.link}>
+              {verifyError ? <Text style={s.error}>{verifyError}</Text> : null}
+              <Button label="Continue" onPress={handleVerify} loading={verifying} loadingLabel="Verifying…" disabled={otp.length !== 6} />
+              <TouchableOpacity onPress={() => { setStep('phone'); setOtp(''); resetVerify(); }} style={s.link}>
                 <Text style={s.linkText}>Use a different number</Text>
               </TouchableOpacity>
             </View>
@@ -177,8 +169,8 @@ export default function AuthScreen({ route, navigation }: any) {
                   <Text style={s.previewHandle}>@{handle}</Text>
                 </View>
               )}
-              {error ? <Text style={s.error}>{error}</Text> : null}
-              <Button label="Create account" onPress={handleSetHandle} loading={loading} loadingLabel="Creating…" disabled={handle.length < 2} />
+              {handleError ? <Text style={s.error}>{handleError}</Text> : null}
+              <Button label="Create account" onPress={handleSetHandle} loading={creating} loadingLabel="Creating…" disabled={handle.length < 2} />
             </View>
           )}
         </View>

@@ -50,8 +50,8 @@ export default function RoomScreen({ route, navigation }: any) {
   useEffect(() => {
     if (!userId) return;
     setJoinError(null);
-    joinRoom({ userId: userId as any, roomId, password: password ?? undefined }).then((res: any) => {
-      if (res?.error) setJoinError(res.error);
+    joinRoom({ userId: userId as any, roomId, password: password ?? undefined }).catch((e: any) => {
+      setJoinError(e.data?.message ?? e.message);
     });
     const interval = setInterval(() => ping({ userId: userId as any, roomId }), 30000);
 
@@ -153,8 +153,8 @@ export default function RoomScreen({ route, navigation }: any) {
                   disabled={!retryPassword.trim()}
                   onPress={() => {
                     setJoinError(null);
-                    joinRoom({ userId: userId as any, roomId, password: retryPassword.trim() }).then((res: any) => {
-                      if (res?.error) setJoinError(res.error);
+                    joinRoom({ userId: userId as any, roomId, password: retryPassword.trim() }).catch((e: any) => {
+                      setJoinError(e.data?.message ?? e.message);
                     });
                     setRetryPassword('');
                   }}

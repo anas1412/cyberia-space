@@ -22,12 +22,12 @@ export const updateProfile = mutation({
     const patch: any = {};
     if (handle) {
       const clean = handle.replace(/[^a-zA-Z0-9_]/g, "").toLowerCase().slice(0, 20);
-      if (clean.length < 2) return { error: "Handle too short" };
+      if (clean.length < 2) throw new Error("Handle too short");
       const existing = await ctx.db
         .query("users")
         .withIndex("by_handle", (q) => q.eq("handle", clean))
         .first();
-      if (existing && existing._id !== userId) return { error: "Handle taken" };
+      if (existing && existing._id !== userId) throw new Error("Handle taken");
       patch.handle = clean;
     }
     if (avatarColor) patch.avatarColor = avatarColor;

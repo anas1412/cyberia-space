@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Phone, Calendar, Hash, ChevronRight, LogOut, Pencil } from 'lucide-react-native';
 import { useMutation, useQuery } from 'convex/react';
@@ -10,6 +10,7 @@ import ContentWrap from '../components/ContentWrap';
 import Header from '../components/Header';
 import DiceBearAvatar from '../components/DiceBearAvatar';
 import ColorPicker from '../components/ColorPicker';
+import { useAsyncAction } from '../hooks/useAsyncAction';
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, userId, logout } = useAuth();
@@ -17,21 +18,18 @@ export default function ProfileScreen({ navigation }: any) {
   const [handle, setHandle] = useState(user?.handle ?? '');
   const [color, setColor] = useState(user?.avatarColor ?? '#E8A840');
   const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [error, setError] = useState('');
 
   const updateProfile = useMutation(api.users.updateProfile);
+  const { execute: doSave, loading: saving, error: saveError, reset } = useAsyncAction(updateProfile);
 
   async function handleSave() {
     if (!userId || !handle.trim()) return;
-    setSaving(true); setError(''); setSaved(false);
-    try {
-      const res = await updateProfile({ userId: userId as any, handle: handle.trim(), avatarColor: color });
-      if (res && 'error' in res && res.error) setError(res.error);
-      else { setSaved(true); setEditing(false); }
-    } catch (e: any) { setError(e.message); }
-    setSaving(false);
+    reset();
+    const res = await doSave({ userId: userId as any, handle: handle.trim(), avatarColor: color });
+    if (!res) return;
+    setSaved(true);
+    setEditing(false);
   }
 
   async function confirmLogout() {
@@ -81,12 +79,12 @@ export default function ProfileScreen({ navigation }: any) {
           {editing && (
             <>
               <ColorPicker value={color} onChange={setColor} />
-              {error ? <Text style={s.error}>{error}</Text> : null}
+              {saveError ? <Text style={s.error}>{saveError}</Text> : null}
               {saved ? <Text style={s.success}>Profile updated</Text> : null}
               <View style={s.btnRow}>
                 <TouchableOpacity
                   style={s.cancelBtn}
-                  onPress={() => { setEditing(false); setError(''); setSaved(false); }}
+                  onPress={() => { setEditing(false); reset(); setSaved(false); }}
                   activeOpacity={0.7}
                 >
                   <Text style={s.cancelBtnText}>Cancel</Text>

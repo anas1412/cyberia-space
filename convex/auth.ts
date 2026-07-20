@@ -54,37 +54,32 @@ export const prepareOtpSession = internalMutation({
   },
 });
 
-// Send OTP — action (errors propagate to client)
+// Send OTP — action
 export const sendOtp = action({
   args: { phone: v.string(), bypass: v.boolean() },
-  handler: async (ctx, { phone, bypass }): Promise<{ success: boolean; error?: string; code?: string }> => {
-    try {
-      const { code } = await ctx.runMutation(internal.auth.prepareOtpSession, { phone });
-      if (bypass) {
-        return { success: true, code };
-      }
-      await ctx.runAction(internal.twilio.sendVerification, { phone });
-      return { success: true };
-    } catch (err: any) {
-      console.error(`sendOtp failed for ${phone}:`, err.message);
-      return { success: false, error: err.message ?? "Failed to send code. Check your number." };
+  handler: async (ctx, { phone, bypass }): Promise<{ code?: string }> => {
+    const { code } = await ctx.runMutation(internal.auth.prepareOtpSession, { phone });
+    if (bypass) {
+      return { code };
     }
+    await ctx.runAction(internal.twilio.sendVerification, { phone });
+    return {};
   },
 });
 
-// Verify OTP — action (fetch requires Node.js runtime)
+// Verify OTP — action
 export const verifyOtp = action({
   args: { phone: v.string(), code: v.string(), platform: v.string(), bypass: v.boolean() },
-  handler: async (ctx, { phone, code, platform, bypass }): Promise<{ success: boolean; error?: string; token?: string; userId?: string; isNewUser?: boolean }> => {
+  handler: async (ctx, { phone, code, platform, bypass }) => {
     const pending = await ctx.runQuery(internal.auth.findPendingSession, { phone });
-    if (!pending) return { success: false, error: "No OTP found. Request a new one." };
-    if (pending.expiresAt < Date.now()) return { success: false, error: "OTP expired." };
+    if (!pending) throw new Error("No OTP found. Request a new one.");
+    if (pending.expiresAt < Date.now()) throw new Error("OTP expired.");
 
     if (bypass) {
-      if (pending.code !== code) return { success: false, error: "Invalid code." };
+      if (pending.code !== code) throw new Error("Invalid code.");
     } else {
       const result = await ctx.runAction(internal.twilio.verifyCode, { phone, code });
-      if (!result.approved) return { success: false, error: "Invalid code." };
+      if (!result.approved) throw new Error("Invalid code.");
     }
 
     await ctx.runMutation(internal.auth.consumePendingSession, { sessionId: pending._id });
@@ -96,7 +91,7 @@ export const verifyOtp = action({
 
     await ctx.runMutation(internal.auth.createSession, { userId, token, platform });
 
-    return { success: true, token, userId, isNewUser };
+    return { token, userId, isNewUser };
   },
 });
 
@@ -151,16 +146,16 @@ export const setHandle = mutation({
   args: { userId: v.id("users"), handle: v.string(), avatarColor: v.string() },
   handler: async (ctx, { userId, handle, avatarColor }) => {
     const clean = handle.replace(/[^a-zA-Z0-9_]/g, "").toLowerCase().slice(0, 20);
-    if (clean.length < 2) return { success: false, error: "Handle too short." };
+    if (clean.length < 2) throw new Error("Handle too short.");
 
     const existing = await ctx.db
       .query("users")
       .withIndex("by_handle", (q) => q.eq("handle", clean))
       .first();
-    if (existing && existing._id !== userId) return { success: false, error: "Handle taken." };
+    if (existing && existing._id !== userId) throw new Error("Handle taken.");
 
     await ctx.db.patch(userId, { handle: clean, avatarColor });
-    return { success: true, handle: clean };
+    return { handle: clean };
   },
 });
 
