@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { saveSession, getSession, clearSession, clearLastRoom } from '../lib/storage';
+import { saveSession, getSession, clearSession } from '../lib/storage';
 
 type AuthCtx = {
   user: any;
@@ -36,7 +36,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function login(t: string, uid: string) {
-    await clearLastRoom();
     await saveSession(t, uid);
     setToken(t);
     setUserId(uid);

@@ -18,6 +18,7 @@ type Step = 'phone' | 'otp' | 'handle';
 export default function AuthScreen({ route, navigation }: any) {
   const preAuthRoomId = route?.params?.preAuthRoomId;
   const preAuthRoomName = route?.params?.preAuthRoomName;
+  const preAuthPassword = route?.params?.preAuthPassword;
   const { login } = useAuth();
   const [step, setStep] = useState<Step>('phone');
   const [phone, setPhone] = useState('+216');
@@ -59,7 +60,7 @@ export default function AuthScreen({ route, navigation }: any) {
       else {
         await login(res.token as string, res.userId as string);
         if (preAuthRoomId) {
-          navigation.replace('Room', { roomId: preAuthRoomId, name: preAuthRoomName });
+          navigation.replace('Room', { roomId: preAuthRoomId, password: preAuthPassword ?? '' });
         } else {
           navigation.replace('Main');
         }
@@ -75,7 +76,7 @@ export default function AuthScreen({ route, navigation }: any) {
       if ('error' in res && res.error) { setError(res.error); setLoading(false); return; }
       await login(token, userId);
       if (preAuthRoomId) {
-        navigation.replace('Room', { roomId: preAuthRoomId, name: preAuthRoomName });
+        navigation.replace('Room', { roomId: preAuthRoomId, password: preAuthPassword ?? '' });
       } else {
         navigation.replace('Main');
       }

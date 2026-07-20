@@ -199,7 +199,7 @@ export default function RoomScreen({ route, navigation }: any) {
           title={room?.name ?? '...'}
           onBack={isGuest ? undefined : () => navigation.navigate('Main')}
           leftContent={isGuest ? (
-            <TouchableOpacity onPress={() => navigation.navigate('Auth')} style={s.loginBtn} activeOpacity={0.8}>
+            <TouchableOpacity onPress={() => navigation.navigate('Auth', { preAuthRoomId: roomId, preAuthRoomName: room?.name, preAuthPassword: password })} style={s.loginBtn} activeOpacity={0.8}>
               <Text style={s.loginBtnText}>Log in</Text>
             </TouchableOpacity>
           ) : undefined}
