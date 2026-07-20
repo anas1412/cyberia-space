@@ -16,15 +16,15 @@
 
 ## Why
 
-Most chat apps keep everything. Every message, every awkward goodbye, every thread you forgot to mute — saved forever. Cyberia Space works the opposite way. Conversations exist only as long as someone is in the room. Leave, and it's gone.
+Most chat apps keep everything. Every message, every awkward goodbye, every thread you forgot to mute — saved forever. Cyberia Space works the opposite way. You see only what happens while you're in the room. Leave, and it's gone.
 
 It's chat for people who want to be present, not archived.
 
 ## How it works
 
-**Rooms** are temporary. Join one, say what you need to say, leave. The room dissolves with you. Come back later with the same link and start fresh.
+**Rooms** have no memory. You see messages sent while you're there. Leave and come back — the room is empty. Each visit is a clean slate.
 
-**Direct messages** last 24 hours from the last message. Enough time to have a conversation, not enough to treat it as a permanent record.
+**Direct messages** last 24 hours from the last message. Enough time for a conversation, not enough to treat it as a permanent record.
 
 **No account required** to join a room — just an invite link. Add a phone number if you want to keep your name across visits.
 
@@ -34,9 +34,7 @@ It's chat for people who want to be present, not archived.
 chat.cyberiaspace.app
 ```
 
-Open in any browser, or scan the invite link someone sends you. No download required on web — works on desktop and mobile.
-
-Native apps available for iOS and Android via Expo.
+Open in a browser, or follow an invite link. Works on desktop and mobile, no download needed.
 
 ---
 
