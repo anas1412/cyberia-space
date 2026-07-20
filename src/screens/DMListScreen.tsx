@@ -85,7 +85,6 @@ export default function DMListScreen({ navigation }: any) {
         )}
         ListEmptyComponent={
           <View>
-            <Text style={[sectionLabel, { marginTop: spacing.md, marginBottom: spacing.sm }]}>Direct Messages</Text>
             {query.trim() ? (
             <View style={{ paddingTop: 40 }}>
               <Text style={{ color: colors.textSecondary, fontSize: 15, textAlign: 'center' }}>
