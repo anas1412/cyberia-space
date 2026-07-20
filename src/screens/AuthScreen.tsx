@@ -137,6 +137,7 @@ export default function AuthScreen({ route, navigation }: any) {
                 </View>
                 <Input value={otp} onChangeText={t => setOtp(t.replace(/\D/g, '').slice(0, 6))}
                   keyboardType="number-pad" autoFocus maxLength={6} caretHidden
+                  onSubmitEditing={() => otp.length === 6 && handleVerify()}
                   style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0 }} />
               </View>
               {error ? <Text style={s.error}>{error}</Text> : null}
