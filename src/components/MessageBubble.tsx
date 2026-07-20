@@ -103,6 +103,7 @@ const s = StyleSheet.create({
   },
   bubbleCol: {
     maxWidth: '70%',
+    alignItems: 'flex-start',
   },
   bubbleColSelf: {
     alignItems: 'flex-end',
@@ -116,7 +117,7 @@ const s = StyleSheet.create({
   bubble: {
     borderRadius: radius.lg,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
+    paddingVertical: spacing.sm,
     borderWidth: 1,
   },
   bubbleOther: {

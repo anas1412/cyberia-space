@@ -109,7 +109,7 @@ export default function RoomScreen({ route, navigation }: any) {
   // Auto-scroll to bottom when new items arrive, but only if near bottom
   useEffect(() => {
     if (isNearBottom && items.length > 0) {
-      setTimeout(() => listRef.current?.scrollToEnd({ animated: false }), 50);
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: false }), 150);
     }
   }, [items, isNearBottom]);
 
