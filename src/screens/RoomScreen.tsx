@@ -197,7 +197,10 @@ export default function RoomScreen({ route, navigation }: any) {
       <ContentWrap variant="chat">
         <Header
           title={room?.name ?? '...'}
-          onBack={isGuest ? undefined : () => navigation.navigate('Main')}
+          onBack={isGuest ? undefined : async () => {
+            await leaveRoom({ userId: userId as any, roomId });
+            navigation.navigate('Main');
+          }}
           leftContent={isGuest ? (
             <TouchableOpacity onPress={() => navigation.navigate('Auth', { preAuthRoomId: roomId, preAuthRoomName: room?.name, preAuthPassword: password })} style={s.loginBtn} activeOpacity={0.8}>
               <Text style={s.loginBtnText}>Log in</Text>
