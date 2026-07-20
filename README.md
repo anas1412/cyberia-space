@@ -1,8 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect x='0' y='0' width='40' height='40' rx='10' fill='%23E8A840'/%3E%3Crect x='24' y='24' width='40' height='40' rx='10' fill='%23F0C060' opacity='0.7'/%3E%3C/svg%3E">
-    <img width="64" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect x='0' y='0' width='40' height='40' rx='10' fill='%23E8A840'/%3E%3Crect x='24' y='24' width='40' height='40' rx='10' fill='%23F0C060' opacity='0.7'/%3E%3C/svg%3E" alt="">
-  </picture>
+  <img src="assets/logo.svg" width="64" alt="Cyberia Space">
 </p>
 
 <h1 align="center">Cyberia Space</h1>
