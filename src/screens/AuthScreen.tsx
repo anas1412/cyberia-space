@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -32,6 +32,7 @@ export default function AuthScreen({ route, navigation }: any) {
   const [sentCode, setSentCode] = useState('');
 
   const bypass = process.env.EXPO_PUBLIC_TWILIO_BYPASS === 'true';
+  const otpRef = useRef<any>(null);
   const sendOtp = useAction(api.auth.sendOtp);
   const verifyOtp = useAction(api.auth.verifyOtp);
   const setHandleFn = useMutation(api.auth.setHandle);
@@ -128,14 +129,14 @@ export default function AuthScreen({ route, navigation }: any) {
                 </View>
               ) : null}
               <View style={{ position: 'relative', height: 56 }}>
-                <View style={s.otpRow}>
+                <Pressable style={s.otpRow} onPress={() => otpRef.current?.focus()}>
                   {[0, 1, 2, 3, 4, 5].map(i => (
                     <View key={i} style={[s.otpBox, otp[i] && s.otpBoxFilled]}>
                       <Text style={s.otpDigit}>{otp[i] || ''}</Text>
                     </View>
                   ))}
-                </View>
-                <Input value={otp} onChangeText={t => setOtp(t.replace(/\D/g, '').slice(0, 6))}
+                </Pressable>
+                <Input ref={otpRef} value={otp} onChangeText={t => setOtp(t.replace(/\D/g, '').slice(0, 6))}
                   keyboardType="number-pad" autoFocus maxLength={6} caretHidden
                   onSubmitEditing={() => otp.length === 6 && handleVerify()}
                   style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0 }} />

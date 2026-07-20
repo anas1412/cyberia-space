@@ -8,7 +8,7 @@ type Props = React.ComponentProps<typeof RNTextInput> & {
   prefix?: string;
 };
 
-export default function Input({ variant = 'default', prefix, style, ...rest }: Props) {
+const Input = React.forwardRef<typeof RNTextInput, Props>(({ variant = 'default', prefix, style, ...rest }, ref) => {
   const base = variant === 'pill' ? inputPill : inputBase;
 
   if (prefix) {
@@ -16,6 +16,7 @@ export default function Input({ variant = 'default', prefix, style, ...rest }: P
       <View style={[s.prefixRow, base, style]}>
         <Text style={s.prefix}>{prefix}</Text>
         <RNTextInput
+          ref={ref as any}
           style={s.prefixInput}
           placeholderTextColor={colors.textMuted}
           {...rest}
@@ -26,12 +27,13 @@ export default function Input({ variant = 'default', prefix, style, ...rest }: P
 
   return (
     <RNTextInput
+      ref={ref as any}
       style={[base, style]}
       placeholderTextColor={colors.textMuted}
       {...rest}
     />
   );
-}
+});
 
 const s = StyleSheet.create({
   prefixRow: {
@@ -54,3 +56,5 @@ const s = StyleSheet.create({
     fontSize: fontSize.body,
   },
 });
+
+export default Input;
