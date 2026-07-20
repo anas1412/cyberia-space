@@ -78,11 +78,7 @@ export default function RoomsListScreen({ navigation }: any) {
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <ContentWrap>
-        <Header
-          title="Rooms"
-          rightLabel={user?.privateRoomId ? undefined : 'New'}
-          onRightPress={() => navigation.navigate('NewRoom')}
-        />
+        <Header title="Rooms" />
 
         <FlatList
         data={filtered}

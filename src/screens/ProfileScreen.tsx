@@ -42,7 +42,7 @@ export default function ProfileScreen({ navigation }: any) {
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <ContentWrap>
-        <Header title="Profile" rightLabel="Save" onRightPress={handleSave} />
+        <Header title="Profile" />
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
@@ -76,6 +76,14 @@ export default function ProfileScreen({ navigation }: any) {
           <ColorPicker value={color} onChange={setColor} />
           {error ? <Text style={s.error}>{error}</Text> : null}
           {saved ? <Text style={s.success}>Profile updated</Text> : null}
+          <TouchableOpacity
+            style={s.saveBtn}
+            onPress={handleSave}
+            disabled={saving}
+            activeOpacity={0.8}
+          >
+            <Text style={s.saveBtnText}>{saving ? 'Saving…' : 'Save'}</Text>
+          </TouchableOpacity>
         </View>
 
         {/* ── Info card ── */}
@@ -177,6 +185,21 @@ const s = StyleSheet.create({
   // Messages
   error: { color: colors.error, fontSize: fontSize.small, textAlign: 'center' },
   success: { color: colors.online, fontSize: fontSize.small, textAlign: 'center' },
+
+  saveBtn: {
+    backgroundColor: colors.accent,
+    borderRadius: radius.md,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    alignSelf: 'center',
+    width: 320,
+    marginTop: spacing.sm,
+  },
+  saveBtnText: {
+    color: '#000',
+    fontSize: fontSize.title,
+    fontWeight: fontWeight.semibold,
+  },
 
   // Sign out
   signOut: {

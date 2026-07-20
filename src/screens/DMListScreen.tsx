@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Plus } from 'lucide-react-native';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
@@ -35,7 +36,7 @@ export default function DMListScreen({ navigation }: any) {
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <ContentWrap>
-        <Header title="Messages" rightLabel="New" onRightPress={() => navigation.navigate('NewDM')} />
+        <Header title="Messages" />
 
       <FlatList
         data={filtered}
@@ -44,8 +45,13 @@ export default function DMListScreen({ navigation }: any) {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={{ gap: spacing.lg }}>
-            <View style={{ marginTop: spacing.md, marginBottom: spacing.sm }}>
-              <SearchBar value={query} onChangeText={setQuery} placeholder="Search messages…" />
+            <View style={s.searchRow}>
+              <View style={s.searchWrap}>
+                <SearchBar value={query} onChangeText={setQuery} placeholder="Search messages…" />
+              </View>
+              <TouchableOpacity style={s.newBtn} onPress={() => navigation.navigate('NewDM')} activeOpacity={0.7}>
+                <Plus size={18} color={colors.textSecondary} strokeWidth={2} />
+              </TouchableOpacity>
             </View>
             <Text style={[sectionLabel, { marginBottom: spacing.sm }]}>Direct Messages</Text>
           </View>
@@ -105,6 +111,16 @@ export default function DMListScreen({ navigation }: any) {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   list: { padding: spacing.lg, paddingBottom: spacing.xxxl },
+  searchRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    marginTop: spacing.md, marginBottom: spacing.sm,
+  },
+  searchWrap: { flex: 1 },
+  newBtn: {
+    width: 40, height: 40, borderRadius: radius.md,
+    backgroundColor: colors.elevated, borderWidth: 1, borderColor: colors.borderStrong,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
 
   dmCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm },
 

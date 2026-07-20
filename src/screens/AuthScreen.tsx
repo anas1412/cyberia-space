@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Rect } from 'react-native-svg';
 import { useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { COUNTRIES } from '../lib/countries';
@@ -93,18 +94,33 @@ export default function AuthScreen({ route, navigation }: any) {
       <ContentWrap variant="auth">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.flex}>
         <View style={s.content}>
-          <View style={s.header}>
-            <Text style={s.title}>
-              {step === 'phone' ? "What's your number?" : step === 'otp' ? 'Enter the code' : 'Choose your name'}
-            </Text>
-            <Text style={s.subtitle}>
-              {step === 'phone'
-                ? 'We\'ll send you a verification code'
-                : step === 'otp'
+          {step === 'phone' ? (
+            <View style={s.brand}>
+              <Svg width={44} height={44} viewBox="0 0 64 64">
+                <Rect x="0" y="0" width="40" height="40" rx="10" fill="#E8A840"/>
+                <Rect x="24" y="24" width="40" height="40" rx="10" fill="#F0C060" opacity="0.7"/>
+              </Svg>
+              <Text style={s.brandTitle}>Cyberia Space</Text>
+              <View style={s.tagline}>
+                <Text style={s.taglineHead}>Present or not.</Text>
+                <Text style={s.taglineBody}>
+                  Messages disappear when you leave the room.{'\n'}
+                  Direct messages fade after 24 hours.
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={s.header}>
+              <Text style={s.title}>
+                {step === 'otp' ? 'Enter the code' : 'Choose your name'}
+              </Text>
+              <Text style={s.subtitle}>
+                {step === 'otp'
                   ? `Sent to ${COUNTRIES.find(c => phone.startsWith(c.dial))?.flag ?? ''} ${phone}`
                   : 'And pick a color to represent you'}
-            </Text>
-          </View>
+              </Text>
+            </View>
+          )}
 
           <View style={s.steps}>
             {steps.map((st, i) => (
@@ -177,6 +193,34 @@ const s = StyleSheet.create({
   flex: { flex: 1 },
   content: { flex: 1, padding: spacing.xxl, justifyContent: 'center', gap: spacing.xxl },
   header: { gap: spacing.sm },
+
+  brand: {
+    alignItems: 'center',
+    gap: spacing.xl,
+    paddingTop: spacing.xxxl,
+  },
+  brandTitle: {
+    fontSize: fontSize.hero,
+    fontWeight: fontWeight.bold,
+    color: colors.accent,
+    textAlign: 'center',
+  },
+  tagline: {
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  taglineHead: {
+    fontSize: fontSize.title,
+    fontWeight: fontWeight.medium,
+    color: colors.text,
+    textAlign: 'center',
+  },
+  taglineBody: {
+    fontSize: fontSize.small,
+    color: colors.textMuted,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
   title: { fontSize: fontSize.hero, fontWeight: fontWeight.bold, color: colors.text, letterSpacing: -0.3 },
   subtitle: { fontSize: fontSize.body, color: colors.textSecondary, lineHeight: 22 },
   steps: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'center' },
