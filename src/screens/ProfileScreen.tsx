@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Phone, Calendar, Hash, ChevronRight, LogOut } from 'lucide-react-native';
+import { Phone, Calendar, Hash, ChevronRight, LogOut, Pencil } from 'lucide-react-native';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
@@ -42,7 +42,14 @@ export default function ProfileScreen({ navigation }: any) {
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <ContentWrap>
-        <Header title="Profile" />
+        <Header
+          title="Profile"
+          rightContent={
+            <TouchableOpacity style={s.editToggle} onPress={() => setEditing(!editing)} activeOpacity={0.7}>
+              <Pencil size={16} color={editing ? '#000' : colors.textSecondary} strokeWidth={2} />
+            </TouchableOpacity>
+          }
+        />
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
@@ -68,22 +75,33 @@ export default function ProfileScreen({ navigation }: any) {
               />
             </View>
           ) : (
-            <TouchableOpacity onPress={() => setEditing(true)} activeOpacity={0.7}>
-              <Text style={s.handle}>@{handle || user?.handle}</Text>
-            </TouchableOpacity>
+            <Text style={s.handle}>@{handle || user?.handle}</Text>
           )}
 
-          <ColorPicker value={color} onChange={setColor} />
-          {error ? <Text style={s.error}>{error}</Text> : null}
-          {saved ? <Text style={s.success}>Profile updated</Text> : null}
-          <TouchableOpacity
-            style={s.saveBtn}
-            onPress={handleSave}
-            disabled={saving}
-            activeOpacity={0.8}
-          >
-            <Text style={s.saveBtnText}>{saving ? 'Saving…' : 'Save'}</Text>
-          </TouchableOpacity>
+          {editing && (
+            <>
+              <ColorPicker value={color} onChange={setColor} />
+              {error ? <Text style={s.error}>{error}</Text> : null}
+              {saved ? <Text style={s.success}>Profile updated</Text> : null}
+              <View style={s.btnRow}>
+                <TouchableOpacity
+                  style={s.cancelBtn}
+                  onPress={() => { setEditing(false); setError(''); setSaved(false); }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={s.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={s.saveBtn}
+                  onPress={handleSave}
+                  disabled={saving}
+                  activeOpacity={0.8}
+                >
+                  <Text style={s.saveBtnText}>{saving ? 'Saving…' : 'Save'}</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </View>
 
         {/* ── Info card ── */}
@@ -141,6 +159,12 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   scroll: { padding: spacing.xl, gap: spacing.xl, paddingBottom: spacing.xxxl * 2 },
 
+  editToggle: {
+    width: 36, height: 36, borderRadius: radius.sm,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
+
   // Hero
   hero: { alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.xxl },
   handle: { fontSize: fontSize.hero, fontWeight: fontWeight.bold, color: colors.text },
@@ -186,14 +210,32 @@ const s = StyleSheet.create({
   error: { color: colors.error, fontSize: fontSize.small, textAlign: 'center' },
   success: { color: colors.online, fontSize: fontSize.small, textAlign: 'center' },
 
+  btnRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    width: 280,
+  },
+  cancelBtn: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+  },
+  cancelBtnText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.title,
+    fontWeight: fontWeight.semibold,
+  },
   saveBtn: {
+    flex: 1,
     backgroundColor: colors.accent,
     borderRadius: radius.md,
     paddingVertical: spacing.lg,
     alignItems: 'center',
-    alignSelf: 'center',
-    width: 320,
-    marginTop: spacing.sm,
   },
   saveBtnText: {
     color: '#000',
