@@ -28,6 +28,7 @@ export default function RoomScreen({ route, navigation }: any) {
   const [hasJoined, setHasJoined] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [retryPassword, setRetryPassword] = useState('');
+  const [isNearBottom, setIsNearBottom] = useState(true);
   const listRef = useRef<FlatList>(null);
 
   const room = useQuery(api.rooms.get, { roomId });
@@ -104,6 +105,13 @@ export default function RoomScreen({ route, navigation }: any) {
       navigation.replace('Kicked', { roomName: room?.name ?? 'Room', isGuest: true, reason: 'kicked' });
     }
   }, [me]);
+
+  // Auto-scroll to bottom when new items arrive, but only if near bottom
+  useEffect(() => {
+    if (isNearBottom && items.length > 0) {
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: false }), 50);
+    }
+  }, [items, isNearBottom]);
 
   // Loading state
   if (room === undefined) {
@@ -212,7 +220,15 @@ export default function RoomScreen({ route, navigation }: any) {
           keyExtractor={(item: any) => item._id}
           contentContainerStyle={s.list}
           showsVerticalScrollIndicator={false}
-          onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+          onContentSizeChange={() => {
+            // scrollToEnd here often misses the final item; useEffect on items is more reliable
+          }}
+          onScroll={({ nativeEvent }) => {
+            const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
+            const isAtBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 80;
+            if (isAtBottom !== isNearBottom) setIsNearBottom(isAtBottom);
+          }}
+          scrollEventThrottle={200}
           renderItem={({ item }: any) => {
             if (item._kind === 'event') {
               const label = item.isYou ? 'You joined' : item.type === 'join' ? `${item.handle} joined` : `${item.handle} left`;

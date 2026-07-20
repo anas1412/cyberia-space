@@ -48,7 +48,6 @@ export default function MessageBubble({
       isConsec && s.wrapConsec,
       { opacity: fade, transform: [{ translateY: slide }] },
     ]}>
-      {/* Avatar + bubble row — aligned to bottom */}
       <View style={[s.row, isSelf && s.rowSelf]}>
         {!isSelf && (
           showAv
@@ -57,7 +56,7 @@ export default function MessageBubble({
         )}
 
         <View style={[s.bubbleCol, { maxWidth: bubbleMaxWidth as any }, isSelf && s.bubbleColSelf]}>
-          {!isSelf && showHandle && showAv && (
+          {!isSelf && showHandle && (
             <Text style={[s.handle, { color: msg.avatarColor ?? colors.textMuted }]}>@{msg.handle ?? '…'}</Text>
           )}
           <View style={[s.bubble, isSelf ? s.bubbleSelf : s.bubbleOther, showAv && (isSelf ? s.bubbleSelfSharp : s.bubbleOtherSharp)]}>
@@ -78,9 +77,10 @@ export default function MessageBubble({
         )}
       </View>
 
-      {/* Time below the bubble, only on the last message in a burst */}
       {showTime && (
-        <Text style={[s.time, isSelf ? s.timeSelf : s.timeOther]}>{fmt(msg.timestamp)}</Text>
+        <Text style={[s.time, isSelf && s.timeSelf, !isSelf && { marginLeft: avSize + spacing.sm }]}>
+          {fmt(msg.timestamp)}
+        </Text>
       )}
     </Animated.View>
   );
@@ -146,9 +146,7 @@ const s = StyleSheet.create({
     fontSize: 10,
     color: colors.textMuted,
     marginTop: 3,
-  },
-  timeOther: {
-    marginLeft: 28 + spacing.sm, // avatar width + gap
+    paddingHorizontal: 2,
   },
   timeSelf: {
     textAlign: 'right',
