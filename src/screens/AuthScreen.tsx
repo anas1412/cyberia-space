@@ -173,7 +173,11 @@ export default function AuthScreen({ route, navigation }: any) {
             </View>
           )}
         </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+
+        <TouchableOpacity style={s.legalLink} onPress={() => navigation.navigate('Legal')} activeOpacity={0.7}>
+          <Text style={s.legalText}>Privacy Policy & Terms</Text>
+        </TouchableOpacity>
       </ContentWrap>
     </SafeAreaView>
   );
@@ -239,6 +243,8 @@ const s = StyleSheet.create({
   link: { alignItems: 'center', padding: spacing.sm },
   linkText: { color: colors.textSecondary, fontSize: fontSize.body },
   error: { color: colors.error, fontSize: fontSize.small, textAlign: 'center' },
+  legalLink: { alignItems: 'center', paddingVertical: spacing.lg },
+  legalText: { color: colors.textMuted, fontSize: fontSize.small },
   bypassBox: {
     backgroundColor: colors.accentBg,
     borderRadius: radius.md,
