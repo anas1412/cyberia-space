@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Phone, Calendar, Hash, ChevronRight, LogOut, Pencil } from 'lucide-react-native';
+import { Phone, Calendar, Hash, ChevronRight, LogOut, Pencil, FileText } from 'lucide-react-native';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
@@ -140,6 +140,19 @@ export default function ProfileScreen({ navigation }: any) {
           ) : (
             <Text style={s.roomSub}>One room per account — create yours</Text>
           )}
+        </TouchableOpacity>
+
+        {/* ── Legal ── */}
+        <TouchableOpacity
+          style={s.card}
+          onPress={() => navigation.navigate('Legal')}
+          activeOpacity={0.7}
+        >
+          <View style={s.roomRow}>
+            <FileText size={18} color={colors.textSecondary} strokeWidth={2} />
+            <Text style={s.roomText}>Privacy Policy & Terms</Text>
+            <ChevronRight size={14} color={colors.textMuted} strokeWidth={2} />
+          </View>
         </TouchableOpacity>
 
         {/* ── Sign out ── */}
