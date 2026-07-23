@@ -2,8 +2,7 @@ import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { sanitizeText } from "./sanitize";
-
-const TTL_MS = 24 * 60 * 60 * 1000;
+import { TTL } from "./config";
 
 function sortIds(a: Id<"users">, b: Id<"users">): [Id<"users">, Id<"users">] {
   return [a, b].sort() as [Id<"users">, Id<"users">];
@@ -104,7 +103,7 @@ export const send = mutation({
       userId,
       text: clean,
       timestamp: now,
-      expiresAt: now + TTL_MS,
+      expiresAt: now + TTL.dm,
       read: false,
       mentions,
     });
@@ -134,7 +133,7 @@ export const send = mutation({
         text: clean.slice(0, 80),
         read: false,
         timestamp: now,
-        expiresAt: now + 90 * 24 * 60 * 60 * 1000,
+        expiresAt: now + TTL.notification,
       });
     }
   },

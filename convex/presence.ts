@@ -1,9 +1,10 @@
 import { internalMutation } from "./_generated/server";
+import { PRESENCE } from "./config";
 
 // Called by cron — removes presence entries not pinged in 90s
 export const cleanupStale = internalMutation({
   handler: async (ctx) => {
-    const staleThreshold = Date.now() - 90 * 1000;
+    const staleThreshold = Date.now() - PRESENCE.pingStaleThreshold;
     const stale = await ctx.db
       .query("presence")
       .filter((q) => q.lt(q.field("lastPing"), staleThreshold))

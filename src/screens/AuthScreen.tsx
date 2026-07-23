@@ -19,7 +19,6 @@ type Step = 'phone' | 'otp' | 'handle';
 
 export default function AuthScreen({ route, navigation }: any) {
   const preAuthRoomId = route?.params?.preAuthRoomId;
-  const preAuthRoomName = route?.params?.preAuthRoomName;
   const preAuthPassword = route?.params?.preAuthPassword;
   const { login } = useAuth();
   const [step, setStep] = useState<Step>('phone');

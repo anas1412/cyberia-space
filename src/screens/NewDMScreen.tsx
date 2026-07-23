@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
-import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
+import { colors, spacing, fontSize, fontWeight } from '../lib/theme';
 import { card, label as labelStyle } from '../lib/sharedStyles';
 import ContentWrap from '../components/ContentWrap';
 import Header from '../components/Header';

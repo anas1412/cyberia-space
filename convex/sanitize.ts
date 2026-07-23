@@ -1,5 +1,5 @@
-const MAX_MESSAGE_LENGTH = 1000;
-const MAX_MENTIONS = 10;
+import { SANITIZE } from "./config";
+
 const MENTION_REGEX = /@[\w]+/g;
 const HTML_TAG_REGEX = /<[^>]*>/g;
 const CONTROL_CHAR_REGEX = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g;
@@ -19,11 +19,11 @@ export function sanitizeText(raw: string): { clean: string; mentions: string[] }
   text = text.trim();
 
   if (text.length === 0) return { error: "Invalid message" };
-  if (text.length > MAX_MESSAGE_LENGTH) return { error: "Message too long" };
+  if (text.length > SANITIZE.maxLength) return { error: "Message too long" };
 
-  // Extract and dedupe mentions, cap at MAX_MENTIONS
+  // Extract and dedupe mentions, cap at maxMentions
   const rawMentions = text.match(MENTION_REGEX) || [];
-  const mentions = [...new Set(rawMentions)].slice(0, MAX_MENTIONS);
+  const mentions = [...new Set(rawMentions)].slice(0, SANITIZE.maxMentions);
 
   return { clean: text, mentions };
 }

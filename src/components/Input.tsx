@@ -1,6 +1,6 @@
 import React from 'react';
 import { TextInput as RNTextInput, StyleSheet, View, Text } from 'react-native';
-import { colors, spacing, radius, fontSize } from '../lib/theme';
+import { colors, spacing, fontSize } from '../lib/theme';
 import { input as inputBase, inputPill } from '../lib/sharedStyles';
 
 type Props = React.ComponentProps<typeof RNTextInput> & {

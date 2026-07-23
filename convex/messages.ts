@@ -1,8 +1,8 @@
 import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { sanitizeText } from "./sanitize";
-
-const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+import { checkRateLimit } from "./rateLimit";
+import { RATE_LIMITS, TTL } from "./config";
 
 // Subscribe to live messages in a room (from join time only)
 export const subscribe = query({
@@ -28,6 +28,12 @@ export const send = mutation({
     if ("error" in result) throw new Error(result.error);
     const { clean, mentions } = result;
 
+    // Rate limit: messages per user per minute per room
+    await checkRateLimit(ctx, {
+      key: `msg:${userId}:${roomId}`,
+      ...RATE_LIMITS.messages,
+    });
+
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("User not found");
 
@@ -43,7 +49,7 @@ export const send = mutation({
       avatarColor: user.avatarColor,
       text: clean,
       timestamp: now,
-      expiresAt: now + TTL_MS,
+      expiresAt: now + TTL.message,
       mentions,
     });
 
@@ -66,7 +72,7 @@ export const send = mutation({
           text: clean.slice(0, 80),
           read: false,
           timestamp: now,
-            expiresAt: now + 90 * 24 * 60 * 60 * 1000,
+            expiresAt: now + TTL.notification,
         });
       }
     }

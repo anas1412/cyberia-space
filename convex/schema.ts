@@ -118,4 +118,10 @@ export default defineSchema({
   })
     .index("by_room", ["roomId"])
     .index("by_room_user", ["roomId", "userId"]),
+
+  rateLimits: defineTable({
+    key: v.string(),
+    count: v.number(),
+    windowStart: v.number(),
+  }).index("by_key", ["key"]),
 });

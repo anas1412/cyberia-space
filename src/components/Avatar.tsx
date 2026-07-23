@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { colors, fontWeight, fontSize } from '../lib/theme';
+import { View, Text } from 'react-native';
+import { fontWeight, fontSize } from '../lib/theme';
 import { avatar as avatarStyle } from '../lib/sharedStyles';
 
 interface Props {

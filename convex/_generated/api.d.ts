@@ -9,11 +9,13 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as config from "../config.js";
 import type * as crons from "../crons.js";
 import type * as dms from "../dms.js";
 import type * as messages from "../messages.js";
 import type * as notifications from "../notifications.js";
 import type * as presence from "../presence.js";
+import type * as rateLimit from "../rateLimit.js";
 import type * as rooms from "../rooms.js";
 import type * as sanitize from "../sanitize.js";
 import type * as twilio from "../twilio.js";
@@ -27,11 +29,13 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  config: typeof config;
   crons: typeof crons;
   dms: typeof dms;
   messages: typeof messages;
   notifications: typeof notifications;
   presence: typeof presence;
+  rateLimit: typeof rateLimit;
   rooms: typeof rooms;
   sanitize: typeof sanitize;
   twilio: typeof twilio;

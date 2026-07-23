@@ -5,7 +5,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
 import { saveLastRoom } from '../lib/storage';
-import { colors, spacing, fontSize, fontWeight } from '../lib/theme';
+import { colors, spacing, fontSize } from '../lib/theme';
 import Loading from '../components/Loading';
 import ContentWrap from '../components/ContentWrap';
 import Header from '../components/Header';

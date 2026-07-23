@@ -1,11 +1,25 @@
 import { mutation, query, internalMutation, internalQuery, action } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { checkRateLimit } from "./rateLimit";
+import { RATE_LIMITS, TTL } from "./config";
 
 const AVATAR_COLORS = [
   "#1A6BFF","#0D4ED8","#2DD4BF","#0891B2",
   "#6366F1","#7C3AED","#0EA5E9","#06B6D4",
 ];
+
+// Internal: check OTP rate limits before sending
+export const checkOtpRateLimit = internalMutation({
+  args: { phone: v.string() },
+  handler: async (ctx, { phone }) => {
+    // Max 3 OTP requests per phone per 10 minutes
+    await checkRateLimit(ctx, {
+      key: `otp:${phone}`,
+      ...RATE_LIMITS.otp,
+    });
+  },
+});
 
 // Internal mutation — creates or finds user (called from verifyOtp action)
 export const authenticateUser = internalMutation({
@@ -47,7 +61,7 @@ export const prepareOtpSession = internalMutation({
     await ctx.db.insert("otpSessions", {
       phone,
       code,
-      expiresAt: Date.now() + 10 * 60 * 1000,
+      expiresAt: Date.now() + TTL.otp,
       verified: false,
     });
     return { code };
@@ -58,6 +72,9 @@ export const prepareOtpSession = internalMutation({
 export const sendOtp = action({
   args: { phone: v.string(), bypass: v.boolean() },
   handler: async (ctx, { phone, bypass }): Promise<{ code?: string }> => {
+    // Rate limit: 3 OTPs per phone per 10 minutes
+    await ctx.runMutation(internal.auth.checkOtpRateLimit, { phone });
+
     const { code } = await ctx.runMutation(internal.auth.prepareOtpSession, { phone });
     if (bypass) {
       return { code };
@@ -121,7 +138,7 @@ export const createSession = internalMutation({
     await ctx.db.insert("sessions", {
       userId,
       token,
-      expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      expiresAt: Date.now() + TTL.session,
       platform,
     });
   },
@@ -187,7 +204,7 @@ export const logout = mutation({
 // Cleanup orphaned guest users (run by cron every hour)
 export const cleanupGuestUsers = internalMutation({
   handler: async (ctx) => {
-    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - TTL.guestCleanup;
     const oldGuests = await ctx.db
       .query("users")
       .filter((q) => q.eq(q.field("isGuest"), true))

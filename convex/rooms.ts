@@ -1,9 +1,10 @@
 import { mutation, query, internalMutation, type QueryCtx, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
-import type { Doc, Id } from "./_generated/dataModel";
+import type { Doc } from "./_generated/dataModel";
+import { checkRateLimit } from "./rateLimit";
+import { RATE_LIMITS, TTL, PRESENCE, ROOMS } from "./config";
 
 const ROOM_TYPES = v.union(v.literal("public"), v.literal("private"), v.literal("hidden"));
-const MAX_DISCOVERABLE_ROOMS = 100;
 
 async function discoverableRoomCount(ctx: QueryCtx | MutationCtx) {
   const [pub, priv] = await Promise.all([
@@ -121,7 +122,7 @@ export const create = mutation({
     // Enforce discoverable room cap
     if (type === "public" || type === "private") {
       const count = await discoverableRoomCount(ctx);
-      if (count >= MAX_DISCOVERABLE_ROOMS) {
+      if (count >= ROOMS.maxDiscoverable) {
         throw new Error("Room limit reached. Create a hidden room instead.");
       }
     }
@@ -149,7 +150,7 @@ export const create = mutation({
 export const getPresence = query({
   args: { roomId: v.id("rooms") },
   handler: async (ctx, { roomId }) => {
-    const staleThreshold = Date.now() - 60 * 1000;
+    const staleThreshold = Date.now() - PRESENCE.staleThreshold;
     const presence = await ctx.db
       .query("presence")
       .withIndex("by_room", (q) => q.eq("roomId", roomId))
@@ -227,7 +228,7 @@ export const join = mutation({
             text: `@${user.handle} joined`,
             read: false,
             timestamp: now,
-            expiresAt: now + 90 * 24 * 60 * 60 * 1000,
+            expiresAt: now + TTL.notification,
           });
         }
       }
@@ -276,7 +277,7 @@ export const leave = mutation({
             text: `@${user.handle} left`,
             read: false,
             timestamp: now,
-            expiresAt: now + 90 * 24 * 60 * 60 * 1000,
+            expiresAt: now + TTL.notification,
           });
         }
       }
@@ -314,7 +315,7 @@ export const update = mutation({
       // Enforce cap when switching into discoverable
       if ((type === "public" || type === "private") && (room.type === "hidden")) {
         const count = await discoverableRoomCount(ctx);
-        if (count >= MAX_DISCOVERABLE_ROOMS) {
+        if (count >= ROOMS.maxDiscoverable) {
           throw new Error("Room limit reached. Keep your room hidden.");
         }
       }
@@ -500,6 +501,12 @@ export const joinAsTemporaryUser = mutation({
       if (password !== room.password) throw new Error("Wrong password");
     }
 
+    // Rate limit: 3 guest accounts per room per 10 minutes
+    await checkRateLimit(ctx, {
+      key: `guest:${roomId}`,
+      ...RATE_LIMITS.guests,
+    });
+
     const token = generateToken();
     const handle = `guest_${token.slice(0, 6)}`;
     const avatarColor = randomColor();
@@ -523,7 +530,7 @@ export const joinAsTemporaryUser = mutation({
     await ctx.db.insert("sessions", {
       userId,
       token: sessionToken,
-      expiresAt: now + 24 * 60 * 60 * 1000,
+      expiresAt: now + TTL.guestSession,
       platform: "guest",
     });
 

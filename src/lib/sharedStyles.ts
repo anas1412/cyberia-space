@@ -1,4 +1,3 @@
-import { StyleSheet } from 'react-native';
 import { colors, spacing, radius, fontSize, fontWeight } from './theme';
 
 // ── Shared style primitives used across all components ──
