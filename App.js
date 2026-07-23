@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
+import ErrorBoundary from './src/components/ErrorBoundary';
 
 import BootScreen    from './src/screens/BootScreen';
 import AuthScreen    from './src/screens/AuthScreen';
@@ -30,32 +31,34 @@ const linking = {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <ConvexProvider client={convex}>
-        <AuthProvider>
-          <StatusBar style="light" />
-          <NavigationContainer linking={linking}>
-            <Stack.Navigator
-              initialRouteName="Boot"
-              screenOptions={{
-                headerShown: false,
-                animation: 'fade',
-                contentStyle: { backgroundColor: '#050508' },
-              }}
-            >
-              <Stack.Screen name="Boot"    component={BootScreen} />
-              <Stack.Screen name="Auth"    component={AuthScreen} />
-              <Stack.Screen name="Main"    component={MainTabs} />
-              <Stack.Screen name="Room"    component={RoomScreen} />
-              <Stack.Screen name="DM"      component={DMScreen} />
-              <Stack.Screen name="NewRoom" component={NewRoomScreen} />
-              <Stack.Screen name="NewDM"   component={NewDMScreen} />
-              <Stack.Screen name="Invite"  component={InviteScreen} />
-              <Stack.Screen name="Kicked"  component={KickedScreen} />
-            </Stack.Navigator>
-          </NavigationContainer>
-        </AuthProvider>
-      </ConvexProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <ConvexProvider client={convex}>
+          <AuthProvider>
+            <StatusBar style="light" />
+            <NavigationContainer linking={linking}>
+              <Stack.Navigator
+                initialRouteName="Boot"
+                screenOptions={{
+                  headerShown: false,
+                  animation: 'fade',
+                  contentStyle: { backgroundColor: '#050508' },
+                }}
+              >
+                <Stack.Screen name="Boot"    component={BootScreen} />
+                <Stack.Screen name="Auth"    component={AuthScreen} />
+                <Stack.Screen name="Main"    component={MainTabs} />
+                <Stack.Screen name="Room"    component={RoomScreen} />
+                <Stack.Screen name="DM"      component={DMScreen} />
+                <Stack.Screen name="NewRoom" component={NewRoomScreen} />
+                <Stack.Screen name="NewDM"   component={NewDMScreen} />
+                <Stack.Screen name="Invite"  component={InviteScreen} />
+                <Stack.Screen name="Kicked"  component={KickedScreen} />
+              </Stack.Navigator>
+            </NavigationContainer>
+          </AuthProvider>
+        </ConvexProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

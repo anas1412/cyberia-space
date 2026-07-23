@@ -15,6 +15,7 @@ import type * as messages from "../messages.js";
 import type * as notifications from "../notifications.js";
 import type * as presence from "../presence.js";
 import type * as rooms from "../rooms.js";
+import type * as sanitize from "../sanitize.js";
 import type * as twilio from "../twilio.js";
 import type * as users from "../users.js";
 
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   presence: typeof presence;
   rooms: typeof rooms;
+  sanitize: typeof sanitize;
   twilio: typeof twilio;
   users: typeof users;
 }>;

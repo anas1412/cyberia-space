@@ -1,6 +1,7 @@
 import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
+import { sanitizeText } from "./sanitize";
 
 const TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -86,7 +87,9 @@ export const send = mutation({
     text: v.string(),
   },
   handler: async (ctx, { conversationId, userId, text }) => {
-    if (!text.trim() || text.length > 1000) throw new Error("Invalid message");
+    const result = sanitizeText(text);
+    if ("error" in result) throw new Error(result.error);
+    const { clean, mentions } = result;
 
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("User not found");
@@ -94,13 +97,12 @@ export const send = mutation({
     const conv = await ctx.db.get(conversationId);
     if (!conv) throw new Error("Conversation not found");
 
-    const mentions = (text.match(/@[\w]+/g) || []) as string[];
     const now = Date.now();
 
     await ctx.db.insert("directMessages", {
       conversationId,
       userId,
-      text: text.trim(),
+      text: clean,
       timestamp: now,
       expiresAt: now + TTL_MS,
       read: false,
@@ -116,7 +118,7 @@ export const send = mutation({
     }
     await ctx.db.patch(conversationId, {
       lastMessageAt: now,
-      lastMessageText: text.slice(0, 60),
+      lastMessageText: clean.slice(0, 60),
       unreadBy: current,
     });
 
@@ -129,7 +131,7 @@ export const send = mutation({
         fromUserId: userId,
         fromHandle: user.handle,
         conversationId,
-        text: text.slice(0, 80),
+        text: clean.slice(0, 80),
         read: false,
         timestamp: now,
         expiresAt: now + 90 * 24 * 60 * 60 * 1000,

@@ -1,12 +1,8 @@
 import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { sanitizeText } from "./sanitize";
 
 const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-function extractMentions(text: string): string[] {
-  const matches = text.match(/@[\w]+/g) || [];
-  return [...new Set(matches)];
-}
 
 // Subscribe to live messages in a room (from join time only)
 export const subscribe = query({
@@ -28,7 +24,9 @@ export const send = mutation({
     text: v.string(),
   },
   handler: async (ctx, { roomId, userId, text }) => {
-    if (!text.trim() || text.length > 1000) throw new Error("Invalid message");
+    const result = sanitizeText(text);
+    if ("error" in result) throw new Error(result.error);
+    const { clean, mentions } = result;
 
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("User not found");
@@ -36,7 +34,6 @@ export const send = mutation({
     const room = await ctx.db.get(roomId);
     if (!room) throw new Error("Room not found");
 
-    const mentions = extractMentions(text);
     const now = Date.now();
 
     const msgId = await ctx.db.insert("messages", {
@@ -44,7 +41,7 @@ export const send = mutation({
       userId,
       handle: user.handle,
       avatarColor: user.avatarColor,
-      text: text.trim(),
+      text: clean,
       timestamp: now,
       expiresAt: now + TTL_MS,
       mentions,
@@ -66,7 +63,7 @@ export const send = mutation({
           fromUserId: userId,
           fromHandle: user.handle,
           roomId,
-          text: text.slice(0, 80),
+          text: clean.slice(0, 80),
           read: false,
           timestamp: now,
             expiresAt: now + 90 * 24 * 60 * 60 * 1000,

@@ -95,7 +95,30 @@ test("message over 1000 chars rejected", async () => {
   const longText = "a".repeat(1001);
   await expect(
     t.mutation(api.messages.send, { roomId, userId, text: longText })
-  ).rejects.toThrow("Invalid message");
+  ).rejects.toThrow("Message too long");
+});
+
+test("HTML tags are stripped from messages", async () => {
+  const t = convexTest(schema, modules);
+  const userId = await createTestUser(t, "html-sender");
+  const { roomId } = await createTestRoom(t, userId);
+
+  await t.mutation(api.messages.send, { roomId, userId, text: "<b>bold</b> and <script>alert('x')</script> clean" });
+  const messages = await t.query(api.messages.subscribe, { roomId });
+  expect(messages).toHaveLength(1);
+  expect(messages[0]!.text).toBe("bold and alert('x') clean");
+});
+
+test("mentions are capped at 10", async () => {
+  const t = convexTest(schema, modules);
+  const userId = await createTestUser(t, "mention-sender");
+  const { roomId } = await createTestRoom(t, userId);
+
+  const text = Array.from({ length: 15 }, (_, i) => `@user${i}`).join(" ");
+  await t.mutation(api.messages.send, { roomId, userId, text });
+  const messages = await t.query(api.messages.subscribe, { roomId });
+  expect(messages).toHaveLength(1);
+  expect(messages[0]!.mentions).toHaveLength(10);
 });
 
 test("subscribe filters by since timestamp", async () => {
