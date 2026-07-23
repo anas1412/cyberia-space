@@ -1,13 +1,14 @@
-import { mutation, query, internalMutation } from "./_generated/server";
+import { mutation, query, internalMutation, type QueryCtx, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import type { Doc, Id } from "./_generated/dataModel";
 
 const ROOM_TYPES = v.union(v.literal("public"), v.literal("private"), v.literal("hidden"));
 const MAX_DISCOVERABLE_ROOMS = 100;
 
-async function discoverableRoomCount(ctx: any) {
+async function discoverableRoomCount(ctx: QueryCtx | MutationCtx) {
   const [pub, priv] = await Promise.all([
-    ctx.db.query("rooms").withIndex("by_type", (q: any) => q.eq("type", "public")).collect(),
-    ctx.db.query("rooms").withIndex("by_type", (q: any) => q.eq("type", "private")).collect(),
+    ctx.db.query("rooms").withIndex("by_type", (q) => q.eq("type", "public")).collect(),
+    ctx.db.query("rooms").withIndex("by_type", (q) => q.eq("type", "private")).collect(),
   ]);
   return pub.length + priv.length;
 }
@@ -303,7 +304,7 @@ export const update = mutation({
     const room = await ctx.db.get(roomId);
     if (!room) throw new Error("Room not found");
     if (room.ownerId !== userId) throw new Error("Not the owner");
-    const patch: any = {};
+    const patch: Partial<Doc<"rooms">> = {};
     if (name) {
       if (!name.trim()) throw new Error("Room name required");
       patch.name = name.slice(0, 40);
@@ -547,7 +548,6 @@ export const cleanupEmptyRooms = internalMutation({
 
     let deleted = 0;
     for (const room of rooms) {
-      if (room.memberCount > 0) continue;
       if (room.memberCount > 0) continue;
 
       const presenceCount = await ctx.db

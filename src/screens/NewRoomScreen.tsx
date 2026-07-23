@@ -21,14 +21,14 @@ export default function NewRoomScreen({ navigation }: any) {
   const [error, setError] = useState('');
 
   const createRoom = useMutation(api.rooms.create);
-  const myRoom = useQuery(api.rooms.getMyRoom, userId ? { userId: userId as any } : 'skip');
+  const myRoom = useQuery(api.rooms.getMyRoom, userId ? { userId } : 'skip');
   const hasRoom = !!myRoom;
 
   async function handleCreate() {
     if (!name.trim() || !userId) return;
     setLoading(true); setError('');
     try {
-      const res = await createRoom({ userId: userId as any, name: name.trim(), type: roomType, topic: topic.trim() || undefined });
+      const res = await createRoom({ userId, name: name.trim(), type: roomType, topic: topic.trim() || undefined });
       navigation.replace('Room', { roomId: res.roomId, name: res.name ?? name.trim() });
     } catch (e: any) { setError(e.message); setLoading(false); }
   }

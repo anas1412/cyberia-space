@@ -24,7 +24,7 @@ function formatRelative(ts: number) {
 
 export default function DMListScreen({ navigation }: any) {
   const { userId } = useAuth();
-  const dms = useQuery(api.dms.listForUser, userId ? { userId: userId as any } : 'skip');
+  const dms = useQuery(api.dms.listForUser, userId ? { userId } : 'skip');
   const [query, setQuery] = useState('');
 
   if (dms === undefined) return <SafeAreaView style={s.container} edges={['top']}><ContentWrap><Header title="Messages" /><Loading /></ContentWrap></SafeAreaView>;

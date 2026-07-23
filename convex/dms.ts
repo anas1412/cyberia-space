@@ -124,7 +124,7 @@ export const send = mutation({
     const otherId = conv.participantIds.find((id) => id !== userId);
     if (otherId) {
       await ctx.db.insert("notifications", {
-        userId: otherId as any,
+        userId: otherId,
         type: "dm",
         fromUserId: userId,
         fromHandle: user.handle,

@@ -66,7 +66,7 @@ export default function MainTabs() {
   const { userId, isGuest, logout } = useAuth();
   const { isDesktop } = useResponsive();
   const navigation = require('@react-navigation/native').useNavigation();
-  const dms = useQuery(api.dms.listForUser, userId ? { userId: userId as any } : 'skip');
+  const dms = useQuery(api.dms.listForUser, userId ? { userId } : 'skip');
   const dmUnread = dms ? dms.filter((d: any) => d.unreadCount > 0).length : 0;
 
   // Guard: guests should not be here

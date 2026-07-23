@@ -6,15 +6,17 @@ import { api } from '../../convex/_generated/api';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import ResponsiveSheet from './ResponsiveSheet';
 import DiceBearAvatar from './DiceBearAvatar';
+import type { Id } from '../../convex/_generated/dataModel';
+import type { PresenceMember } from '../types/convex';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
-  roomId: any;
-  userId: string;
+  roomId: Id<"rooms">;
+  userId: Id<"users">;
   isOwner: boolean;
   ownerId?: string;
-  members: any[];
+  members: PresenceMember[];
 }
 
 function confirm(message: string): Promise<boolean> {
@@ -43,7 +45,7 @@ export default function MembersSheet({ visible, onClose, roomId, userId, isOwner
     if (!ok) return;
     setKicking(member.userId);
     try {
-      const res = await kickUser({ roomId, ownerId: userId as any, userId: member.userId });
+      const res = await kickUser({ roomId, ownerId: userId, userId: member.userId });
       if (res?.wasGuest) {
         // Guest account was deleted, they'll detect it on next query
       }
@@ -57,7 +59,7 @@ export default function MembersSheet({ visible, onClose, roomId, userId, isOwner
     const ok = await confirm(`Ban @${member.handle}? They won't be able to rejoin.`);
     if (!ok) return;
     try {
-      await banUser({ roomId, ownerId: userId as any, userId: member.userId });
+      await banUser({ roomId, ownerId: userId, userId: member.userId });
     } catch (e) {
       console.error('Ban failed:', e);
     }

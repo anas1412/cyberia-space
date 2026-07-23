@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import type { Id } from '../../convex/_generated/dataModel';
+import type { PresenceMember } from '../types/convex';
 
 interface UseRoomChatOptions {
   roomId: string;
-  userId?: string | null;
+  userId?: Id<"users"> | null;
   hasJoined: boolean;
   onJoined?: () => void;
   joinTime: number;

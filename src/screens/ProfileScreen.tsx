@@ -14,7 +14,7 @@ import { useAsyncAction } from '../hooks/useAsyncAction';
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, userId, logout } = useAuth();
-  const myRoom = useQuery(api.rooms.getMyRoom, userId ? { userId: userId as any } : 'skip');
+  const myRoom = useQuery(api.rooms.getMyRoom, userId ? { userId } : 'skip');
   const [handle, setHandle] = useState(user?.handle ?? '');
   const [color, setColor] = useState(user?.avatarColor ?? '#E8A840');
   const [editing, setEditing] = useState(false);
@@ -26,7 +26,7 @@ export default function ProfileScreen({ navigation }: any) {
   async function handleSave() {
     if (!userId || !handle.trim()) return;
     reset();
-    const res = await doSave({ userId: userId as any, handle: handle.trim(), avatarColor: color });
+    const res = await doSave({ userId, handle: handle.trim(), avatarColor: color });
     if (!res) return;
     setSaved(true);
     setEditing(false);

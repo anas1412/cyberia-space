@@ -29,7 +29,7 @@ export default function RoomsListScreen({ navigation }: any) {
   const { user, userId } = useAuth();
   const { results: rooms, loadMore, isLoading, status } = usePaginatedQuery(
     api.rooms.listPublic,
-    { userId: userId as any },
+    { userId: userId ?? undefined },
     { initialNumItems: 20 },
   );
   const discoverableCount = useQuery(api.rooms.getDiscoverableCount) ?? 0;
@@ -252,7 +252,7 @@ export default function RoomsListScreen({ navigation }: any) {
                 style={[s.modalJoin, inviteCode.length < 6 && { opacity: 0.4 }]}
                 disabled={inviteCode.length < 6}
                 onPress={async () => {
-                  await joinRoom({ roomId: codeModal.roomId as any, userId: userId as any, password: inviteCode });
+                  await joinRoom({ roomId: codeModal.roomId! as any, userId: userId!, password: inviteCode });
                   setCodeModal({ visible: false }); setInviteCode('');
                   navigation.navigate('Room', { roomId: codeModal.roomId, password: inviteCode });
                 }}

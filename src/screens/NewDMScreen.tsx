@@ -29,7 +29,7 @@ export default function NewDMScreen({ navigation }: any) {
     if ((targetUser._id as string) === userId) { setError("You can't message yourself"); return; }
     setLoading(true); setError('');
     try {
-      const convId = await getOrCreate({ userId: userId as any, targetId: targetUser._id });
+      const convId = await getOrCreate({ userId, targetId: targetUser._id });
       navigation.replace('DM', { conversationId: convId });
     } catch (e: any) { setError(e.message); setLoading(false); }
   }

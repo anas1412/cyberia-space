@@ -34,13 +34,15 @@ import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import ResponsiveSheet from './ResponsiveSheet';
 import Input from './Input';
 import Button from './Button';
+import type { Id } from '../../convex/_generated/dataModel';
+import type { BanEntry } from '../types/convex';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
   onDeleted?: () => void;
-  roomId: any;
-  userId: string;
+  roomId: Id<"rooms">;
+  userId: Id<"users">;
   roomName: string;
   roomTopic?: string;
   roomType?: string;
@@ -62,7 +64,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
   const deleteRoom = useMutation(api.rooms.remove);
   const unbanUser = useMutation(api.rooms.unban);
   const bans = useQuery(api.rooms.listBans, { roomId }) ?? [];
-  const password = useQuery(api.rooms.getPassword, roomId && userId ? { roomId, userId: userId as any } : 'skip');
+  const password = useQuery(api.rooms.getPassword, roomId && userId ? { roomId, userId } : 'skip');
   const regeneratePw = useMutation(api.rooms.regeneratePassword);
 
   useEffect(() => {
@@ -79,7 +81,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
     if (!name.trim()) return;
     setSaving(true);
     try {
-      await updateRoom({ roomId, userId: userId as any, name: name.trim(), topic: topic.trim() || undefined, type: selectedType as any });
+      await updateRoom({ roomId, userId, name: name.trim(), topic: topic.trim() || undefined, type: selectedType as any });
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Failed to update room');
     }
@@ -88,7 +90,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
 
   async function handleDelete() {
     try {
-      await deleteRoom({ roomId, userId: userId as any });
+      await deleteRoom({ roomId, userId });
       onDeleted?.();
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Failed to delete room');
@@ -104,7 +106,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
   async function handleRegenerateLink() {
     const ok = await confirm('Regenerate invite link? The old link will stop working.');
     if (!ok) return;
-    const res = await regeneratePw({ roomId, userId: userId as any });
+                const res = await regeneratePw({ roomId, userId });
     const newLink = `${INVITE_BASE}/${roomId}/${res.password}`;
     await copyToClipboard(newLink);
     setCopiedField('link');
@@ -180,7 +182,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
                   : <Copy size={14} color={colors.textSecondary} />}
               </TouchableOpacity>
               <TouchableOpacity style={s.copyBtn} onPress={async () => {
-                const res = await regeneratePw({ roomId, userId: userId as any });
+    const res = await regeneratePw({ roomId, userId });
                 Alert.alert('New password', res.password);
               }}>
                 <RefreshCw size={14} color={colors.textSecondary} />
@@ -223,14 +225,14 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
 
         {/* ── Banned ── */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>Banned · {(bans as any[]).length}</Text>
-          {(bans as any[]).length === 0 ? (
+          <Text style={s.sectionTitle}>Banned · {bans.length}</Text>
+          {bans.length === 0 ? (
             <Text style={s.empty}>No banned users</Text>
           ) : (
-            (bans as any[]).map((b: any) => (
+            bans.map((b: BanEntry) => (
               <View key={b._id} style={s.banRow}>
                 <Text style={s.banHandle}>@{b.handle}</Text>
-                <TouchableOpacity onPress={() => unbanUser({ roomId, ownerId: userId as any, userId: b.userId })} style={s.unbanBtn}>
+                <TouchableOpacity onPress={() => unbanUser({ roomId, ownerId: userId, userId: b.userId })} style={s.unbanBtn}>
                   <Text style={s.unbanText}>Unban</Text>
                 </TouchableOpacity>
               </View>

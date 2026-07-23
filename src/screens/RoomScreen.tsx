@@ -17,9 +17,15 @@ import MembersSheet from '../components/MembersSheet';
 import Loading from '../components/Loading';
 import Input from '../components/Input';
 import useRoomChat from '../hooks/useRoomChat';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../types/navigation';
+import type { Id } from '../../convex/_generated/dataModel';
 
-export default function RoomScreen({ route, navigation }: any) {
-  const { roomId, password } = route.params ?? {};
+type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
+
+export default function RoomScreen({ route, navigation }: Props) {
+  const { roomId: roomIdRaw, password } = route.params;
+  const roomId = roomIdRaw as Id<"rooms">;
   const { userId, isGuest, isLoading, isLoggedIn } = useAuth();
   const [input, setInput] = useState('');
   const [joinTime] = useState(() => Date.now());
@@ -32,7 +38,7 @@ export default function RoomScreen({ route, navigation }: any) {
   const listRef = useRef<FlatList>(null);
 
   const room = useQuery(api.rooms.get, { roomId });
-  const me = useQuery(api.users.get, userId ? { userId: userId as any } : 'skip');
+  const me = useQuery(api.users.get, userId ? { userId } : 'skip');
   const sendMsg = useMutation(api.messages.send);
   const joinRoom = useMutation(api.rooms.join);
   const leaveRoom = useMutation(api.rooms.leave);
@@ -50,13 +56,13 @@ export default function RoomScreen({ route, navigation }: any) {
   useEffect(() => {
     if (!userId) return;
     setJoinError(null);
-    joinRoom({ userId: userId as any, roomId, password: password ?? undefined }).catch((e: any) => {
+    joinRoom({ userId, roomId, password: password ?? undefined }).catch((e: any) => {
       setJoinError(e.data?.message ?? e.message);
     });
-    const interval = setInterval(() => ping({ userId: userId as any, roomId }), 30000);
+    const interval = setInterval(() => ping({ userId, roomId }), 30000);
 
     const handleBeforeUnload = () => {
-      leaveRoom({ userId: userId as any, roomId });
+      leaveRoom({ userId, roomId });
     };
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeunload', handleBeforeUnload);
@@ -67,7 +73,7 @@ export default function RoomScreen({ route, navigation }: any) {
       if (typeof window !== 'undefined') {
         window.removeEventListener('beforeunload', handleBeforeUnload);
       }
-      leaveRoom({ userId: userId as any, roomId });
+      leaveRoom({ userId, roomId });
     };
   }, [userId, roomId, joinRoom, leaveRoom, ping]);
 
@@ -153,7 +159,7 @@ export default function RoomScreen({ route, navigation }: any) {
                   disabled={!retryPassword.trim()}
                   onPress={() => {
                     setJoinError(null);
-                    joinRoom({ userId: userId as any, roomId, password: retryPassword.trim() }).catch((e: any) => {
+                    joinRoom({ userId, roomId, password: retryPassword.trim() }).catch((e: any) => {
                       setJoinError(e.data?.message ?? e.message);
                     });
                     setRetryPassword('');
@@ -177,7 +183,7 @@ export default function RoomScreen({ route, navigation }: any) {
   async function handleSend() {
     if (!input.trim() || !userId) return;
     const text = input.trim(); setInput('');
-    await sendMsg({ roomId, userId: userId as any, text });
+    await sendMsg({ roomId, userId, text });
   }
 
   const allOnline = [...(presence as any[])];
@@ -198,7 +204,7 @@ export default function RoomScreen({ route, navigation }: any) {
         <Header
           title={room?.name ?? '...'}
           onBack={isGuest ? undefined : async () => {
-            await leaveRoom({ userId: userId as any, roomId });
+            await leaveRoom({ userId, roomId });
             navigation.navigate('Main');
           }}
           leftContent={isGuest ? (
@@ -263,7 +269,7 @@ export default function RoomScreen({ route, navigation }: any) {
           onClose={() => setSheetVisible(false)}
           onDeleted={() => navigation.navigate('Main')}
           roomId={roomId}
-          userId={userId as string}
+          userId={userId}
           roomName={room?.name ?? '...'}
           roomTopic={room?.topic}
           roomType={room?.type}
@@ -275,7 +281,7 @@ export default function RoomScreen({ route, navigation }: any) {
           visible={membersVisible}
           onClose={() => setMembersVisible(false)}
           roomId={roomId}
-          userId={userId as string}
+          userId={userId}
           isOwner={!!isOwner}
           ownerId={room?.ownerId}
           members={presence as any[]}

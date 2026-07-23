@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
 
 export const get = query({
   args: { userId: v.id("users") },
@@ -19,7 +20,7 @@ export const updateProfile = mutation({
     avatarColor: v.optional(v.string()),
   },
   handler: async (ctx, { userId, handle, avatarColor }) => {
-    const patch: any = {};
+    const patch: Partial<Doc<"users">> = {};
     if (handle) {
       const clean = handle.replace(/[^a-zA-Z0-9_]/g, "").toLowerCase().slice(0, 20);
       if (clean.length < 2) throw new Error("Handle too short");

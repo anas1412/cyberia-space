@@ -33,7 +33,7 @@ export default function DMScreen({ route, navigation }: any) {
   }, [messages]);
 
   useEffect(() => {
-    if (userId && messages) markRead({ conversationId, userId: userId as any });
+    if (userId && messages) markRead({ conversationId, userId });
   }, [messages, userId]);
 
   if (messages === undefined) return <SafeAreaView style={s.container} edges={['top']}><ContentWrap variant="chat"><Header title="..." onBack={() => navigation.goBack()} /><Loading /></ContentWrap></SafeAreaView>;
@@ -43,7 +43,7 @@ export default function DMScreen({ route, navigation }: any) {
   async function handleSend() {
     if (!input.trim() || !userId) return;
     const text = input.trim(); setInput('');
-    await sendMsg({ conversationId, userId: userId as any, text });
+    await sendMsg({ conversationId, userId, text });
   }
 
   const grouped = messages.map((msg: any, i: number) => {
