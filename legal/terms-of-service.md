@@ -1,10 +1,8 @@
-# Terms of Service
+# Cyberia Space Terms of Service
 
 **Last updated:** July 24, 2026
 
 Welcome to Cyberia Space. These Terms of Service ("Terms") govern your use of the Cyberia Space chat application and related services (the "Service"). By accessing or using the Service, you agree to be bound by these Terms.
-
-> **Note:** This is a draft. Have a legal professional review it before going live.
 
 ## 1. Eligibility
 
@@ -20,7 +18,6 @@ You must be at least 13 years old to use the Service. By using the Service, you 
 ## 3. Acceptable Use
 
 You agree to use the Service only for lawful purposes. You must NOT:
-
 - Send spam, unsolicited messages, or flood rooms with repetitive content.
 - Harass, bully, threaten, or intimidate other users.
 - Send messages containing hate speech, violence, or incitement.
@@ -53,41 +50,41 @@ You agree to use the Service only for lawful purposes. You must NOT:
 
 The Service, including its design, code, and branding, is owned by Cyberia Space. You may not copy, modify, distribute, or reverse-engineer any part of the Service without our written consent.
 
-## 8. Termination
+## 8. DMCA / Copyright Complaints
+
+If you believe that content on the Service infringes your copyright, please send a written notice to support@cyberiaspace.app containing:
+- A description of the copyrighted work you claim has been infringed.
+- The URL or location of the infringing content.
+- Your contact information (name, email, phone number).
+- A statement that you have a good-faith belief that the use is not authorized.
+- A statement, under penalty of perjury, that the information in your notice is accurate and that you are the copyright owner or authorized to act on their behalf.
+
+We will review all notices and remove infringing content if appropriate.
+
+## 9. Termination
 
 You may stop using the Service at any time. We may suspend or terminate your access to the Service at any time, with or without cause, with or without notice.
 
-Upon termination:
-- Your right to use the Service ceases immediately.
-- We may delete your account and associated data.
-- Any outstanding obligations survive termination.
+## 10. Disclaimer of Warranties
 
-## 9. Disclaimer of Warranties
+THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
-THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR SECURE.
-
-## 10. Limitation of Liability
+## 11. Limitation of Liability
 
 TO THE MAXIMUM EXTENT PERMITTED BY LAW, CYBERIA SPACE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING OUT OF YOUR USE OF THE SERVICE.
 
-## 11. Changes to These Terms
+## 12. Changes to These Terms
 
-We may update these Terms from time to time. We will notify you of material changes by posting the updated Terms in the Service and updating the "Last updated" date. Continued use of the Service after changes constitutes acceptance of the new Terms.
+We may update these Terms from time to time. Continued use of the Service after changes constitutes acceptance of the new Terms.
 
-## 12. Governing Law
+## 13. Governing Law
 
-These Terms are governed by the laws of [your jurisdiction], without regard to conflict of law principles.
+These Terms are governed by the laws of Tunisia, without regard to conflict of law principles.
 
-## 13. Dispute Resolution
+## 14. Dispute Resolution
 
-Any disputes arising from these Terms shall be resolved through good-faith negotiation first. If unresolved within 30 days, disputes shall be submitted to binding arbitration in [your jurisdiction].
+Any disputes arising from these Terms shall be resolved through good-faith negotiation first. If unresolved within 30 days, disputes shall be submitted to the competent courts of Tunis, Tunisia.
 
-## 14. Contact
+## 15. Contact
 
-If you have questions about these Terms, contact us at:
-
-**Email:** [your-email@domain.com]
-
----
-
-*This document is a draft template and does not constitute legal advice. Consult a qualified attorney to ensure compliance with applicable laws in your jurisdiction.*
+If you have questions about these Terms, contact us at: support@cyberiaspace.app

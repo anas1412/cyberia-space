@@ -53,23 +53,25 @@ No method of transmission or storage is 100% secure. We cannot guarantee absolut
 
 Depending on your jurisdiction, you may have the right to:
 - Access the personal data we hold about you.
-- Correct inaccurate personal data.
 - Delete your account and associated data.
-- Export your data in a portable format.
 
-To exercise these rights, contact us at the email address below.
+To exercise these rights, contact us at support@cyberiaspace.app. We will respond within 30 days.
 
-7. Children's Privacy
+7. Data Breach Notification
+
+If we discover a data breach that affects your personal information, we will notify you within 72 hours via the contact information associated with your account.
+
+8. Children's Privacy
 
 The Service is not intended for users under the age of 13. We do not knowingly collect information from children under 13.
 
-8. Changes to This Policy
+9. Changes to This Policy
 
 We may update this Privacy Policy from time to time. We will notify you of any material changes by posting the new policy in the Service and updating the "Last updated" date.
 
-9. Contact Us
+10. Contact Us
 
-If you have questions about this Privacy Policy, contact us at: [your-email@domain.com]`;
+If you have questions about this Privacy Policy, contact us at: support@cyberiaspace.app`;
 
 export const TERMS_OF_SERVICE = `Cyberia Space Terms of Service
 
@@ -123,26 +125,41 @@ You agree to use the Service only for lawful purposes. You must NOT:
 
 The Service, including its design, code, and branding, is owned by Cyberia Space. You may not copy, modify, distribute, or reverse-engineer any part of the Service without our written consent.
 
-8. Termination
+8. DMCA / Copyright Complaints
+
+If you believe that content on the Service infringes your copyright, please send a written notice to support@cyberiaspace.app containing:
+- A description of the copyrighted work you claim has been infringed.
+- The URL or location of the infringing content.
+- Your contact information (name, email, phone number).
+- A statement that you have a good-faith belief that the use is not authorized.
+- A statement, under penalty of perjury, that the information in your notice is accurate and that you are the copyright owner or authorized to act on their behalf.
+
+We will review all notices and remove infringing content if appropriate.
+
+9. Termination
 
 You may stop using the Service at any time. We may suspend or terminate your access to the Service at any time, with or without cause, with or without notice.
 
-9. Disclaimer of Warranties
+10. Disclaimer of Warranties
 
 THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
-10. Limitation of Liability
+11. Limitation of Liability
 
 TO THE MAXIMUM EXTENT PERMITTED BY LAW, CYBERIA SPACE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING OUT OF YOUR USE OF THE SERVICE.
 
-11. Changes to These Terms
+12. Changes to These Terms
 
 We may update these Terms from time to time. Continued use of the Service after changes constitutes acceptance of the new Terms.
 
-12. Governing Law
+13. Governing Law
 
-These Terms are governed by the laws of [your jurisdiction], without regard to conflict of law principles.
+These Terms are governed by the laws of Tunisia, without regard to conflict of law principles.
 
-13. Contact
+14. Dispute Resolution
 
-If you have questions about these Terms, contact us at: [your-email@domain.com]`;
+Any disputes arising from these Terms shall be resolved through good-faith negotiation first. If unresolved within 30 days, disputes shall be submitted to the competent courts of Tunis, Tunisia.
+
+15. Contact
+
+If you have questions about these Terms, contact us at: support@cyberiaspace.app`;

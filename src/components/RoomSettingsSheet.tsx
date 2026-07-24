@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { X, Trash2, Copy, RefreshCw, Check, QrCode } from 'lucide-react-native';
 import { useMutation, useQuery } from 'convex/react';
 
@@ -17,21 +17,10 @@ async function copyToClipboard(text: string) {
   }
 }
 
-function confirm(message: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (Platform.OS === 'web') {
-      resolve(window.confirm(message));
-    } else {
-      Alert.alert('Confirm', message, [
-        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-        { text: 'OK', onPress: () => resolve(true) },
-      ]);
-    }
-  });
-}
 import { api } from '../../convex/_generated/api';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import ResponsiveSheet from './ResponsiveSheet';
+import ConfirmDialog from './ConfirmDialog';
 import Input from './Input';
 import Button from './Button';
 import type { Id } from '../../convex/_generated/dataModel';
@@ -55,10 +44,11 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
   const [name, setName] = useState(roomName);
   const [topic, setTopic] = useState(roomTopic ?? '');
   const [saving, setSaving] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [selectedType, setSelectedType] = useState(roomType);
   const [copiedField, setCopiedField] = useState<'link' | 'password' | null>(null);
   const [showQR, setShowQR] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmRegen, setConfirmRegen] = useState(false);
 
   const updateRoom = useMutation(api.rooms.update);
   const deleteRoom = useMutation(api.rooms.remove);
@@ -72,8 +62,9 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
       setName(roomName);
       setTopic(roomTopic ?? '');
       setSelectedType(roomType);
-      setConfirmDelete(false);
       setCopiedField(null);
+      setConfirmDelete(false);
+      setConfirmRegen(false);
     }
   }, [visible, roomName, roomTopic, roomType]);
 
@@ -83,7 +74,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
     try {
       await updateRoom({ roomId, userId, name: name.trim(), topic: topic.trim() || undefined, type: selectedType as any });
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to update room');
+      console.error('Failed to update room:', e.message);
     }
     setSaving(false);
   }
@@ -93,8 +84,9 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
       await deleteRoom({ roomId, userId });
       onDeleted?.();
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to delete room');
+      console.error('Failed to delete room:', e.message);
     }
+    setConfirmDelete(false);
   }
 
   async function handleCopy(text: string, field: 'link' | 'password') {
@@ -104,9 +96,8 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
   }
 
   async function handleRegenerateLink() {
-    const ok = await confirm('Regenerate invite link? The old link will stop working.');
-    if (!ok) return;
-                const res = await regeneratePw({ roomId, userId });
+    setConfirmRegen(false);
+    const res = await regeneratePw({ roomId, userId });
     const newLink = `${INVITE_BASE}/${roomId}/${res.password}`;
     await copyToClipboard(newLink);
     setCopiedField('link');
@@ -182,8 +173,8 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
                   : <Copy size={14} color={colors.textSecondary} />}
               </TouchableOpacity>
               <TouchableOpacity style={s.copyBtn} onPress={async () => {
-    const res = await regeneratePw({ roomId, userId });
-                Alert.alert('New password', res.password);
+                const res = await regeneratePw({ roomId, userId });
+                console.log('New password:', res.password);
               }}>
                 <RefreshCw size={14} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -204,7 +195,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
             </TouchableOpacity>
             <TouchableOpacity
               style={s.inviteChipSecondary}
-              onPress={handleRegenerateLink}
+              onPress={() => setConfirmRegen(true)}
               activeOpacity={0.7}
             >
               <RefreshCw size={14} color={colors.textSecondary} />
@@ -243,24 +234,10 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
         {/* ── Danger zone ── */}
         <View style={s.section}>
           <Text style={[s.sectionTitle, { color: colors.error }]}>Danger zone</Text>
-          {confirmDelete ? (
-            <View style={s.deleteConfirm}>
-              <Text style={s.deleteWarn}>Delete "{roomName}" and all its messages?</Text>
-              <View style={s.deleteRow}>
-                <TouchableOpacity style={s.cancelBtn} onPress={() => setConfirmDelete(false)}>
-                  <Text style={s.cancelText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={s.confirmDeleteBtn} onPress={handleDelete}>
-                  <Text style={s.confirmDeleteText}>Delete forever</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            <TouchableOpacity style={s.deleteBtn} onPress={() => setConfirmDelete(true)} activeOpacity={0.7}>
-              <Trash2 size={16} color={colors.error} strokeWidth={2} />
-              <Text style={s.deleteText}>Delete room</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity style={s.deleteBtn} onPress={() => setConfirmDelete(true)} activeOpacity={0.7}>
+            <Trash2 size={16} color={colors.error} strokeWidth={2} />
+            <Text style={s.deleteText}>Delete room</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -279,6 +256,25 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
           </View>
         </View>
       )}
+
+      <ConfirmDialog
+        visible={confirmRegen}
+        onClose={() => setConfirmRegen(false)}
+        onConfirm={handleRegenerateLink}
+        title="Regenerate invite link"
+        message="The old link will stop working. Anyone with the old link won't be able to join."
+        confirmLabel="Regenerate"
+      />
+
+      <ConfirmDialog
+        visible={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={handleDelete}
+        title="Delete room"
+        message={`Delete "${roomName}" and all its messages? This cannot be undone.`}
+        confirmLabel="Delete forever"
+        danger
+      />
     </ResponsiveSheet>
   );
 }
@@ -353,13 +349,6 @@ const s = StyleSheet.create({
     borderWidth: 1.5, borderColor: 'rgba(244,75,66,0.2)',
   },
   deleteText: { color: colors.error, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
-  deleteConfirm: { gap: spacing.md },
-  deleteWarn: { color: colors.textSecondary, fontSize: fontSize.body, textAlign: 'center' },
-  deleteRow: { flexDirection: 'row', gap: spacing.sm },
-  cancelBtn: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.lg, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
-  cancelText: { color: colors.text, fontSize: fontSize.title, fontWeight: fontWeight.semibold },
-  confirmDeleteBtn: { flex: 1, backgroundColor: colors.error, borderRadius: radius.md, padding: spacing.lg, alignItems: 'center' },
-  confirmDeleteText: { color: '#fff', fontSize: fontSize.title, fontWeight: fontWeight.semibold },
 
   inviteChips: {
     flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap',

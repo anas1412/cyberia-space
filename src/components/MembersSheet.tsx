@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { X, UserMinus, Ban, Crown } from 'lucide-react-native';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
 import ResponsiveSheet from './ResponsiveSheet';
+import ConfirmDialog from './ConfirmDialog';
 import DiceBearAvatar from './DiceBearAvatar';
 import type { Id } from '../../convex/_generated/dataModel';
 import type { PresenceMember } from '../types/convex';
@@ -19,51 +20,54 @@ interface Props {
   members: PresenceMember[];
 }
 
-function confirm(message: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (Platform.OS === 'web') {
-      resolve(window.confirm(message));
-    } else {
-      Alert.alert('Confirm', message, [
-        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-        { text: 'OK', onPress: () => resolve(true) },
-      ]);
-    }
-  });
-}
-
 export default function MembersSheet({ visible, onClose, roomId, userId, isOwner, ownerId, members }: Props) {
   const kickUser = useMutation(api.rooms.kick);
   const banUser = useMutation(api.rooms.ban);
   const [kicking, setKicking] = useState<string | null>(null);
+  const [confirmState, setConfirmState] = useState<{
+    type: 'kick' | 'ban';
+    member: PresenceMember;
+  } | null>(null);
 
-  async function handleKick(member: any) {
-    const msg = member.isGuest
-      ? `Remove @${member.handle}? They'll be removed and won't be able to return.`
-      : `Kick @${member.handle} from the room?`;
-    const ok = await confirm(msg);
-    if (!ok) return;
-    setKicking(member.userId);
-    try {
-      const res = await kickUser({ roomId, ownerId: userId, userId: member.userId });
-      if (res?.wasGuest) {
-        // Guest account was deleted, they'll detect it on next query
+  function openKick(member: PresenceMember) {
+    setConfirmState({ type: 'kick', member });
+  }
+
+  function openBan(member: PresenceMember) {
+    setConfirmState({ type: 'ban', member });
+  }
+
+  async function handleConfirm() {
+    if (!confirmState) return;
+    const { type, member } = confirmState;
+
+    if (type === 'kick') {
+      setKicking(member.userId);
+      try {
+        await kickUser({ roomId, ownerId: userId, userId: member.userId });
+      } catch (e) {
+        console.error('Kick failed:', e);
       }
-    } catch (e) {
-      console.error('Kick failed:', e);
+      setKicking(null);
+    } else {
+      try {
+        await banUser({ roomId, ownerId: userId, userId: member.userId });
+      } catch (e) {
+        console.error('Ban failed:', e);
+      }
     }
-    setKicking(null);
+    setConfirmState(null);
   }
 
-  async function handleBan(member: any) {
-    const ok = await confirm(`Ban @${member.handle}? They won't be able to rejoin.`);
-    if (!ok) return;
-    try {
-      await banUser({ roomId, ownerId: userId, userId: member.userId });
-    } catch (e) {
-      console.error('Ban failed:', e);
-    }
-  }
+  const kickMsg = confirmState?.type === 'kick'
+    ? (confirmState.member.isGuest
+      ? `Remove @${confirmState.member.handle}? They'll be removed and won't be able to return.`
+      : `Kick @${confirmState.member.handle} from the room?`)
+    : '';
+
+  const banMsg = confirmState?.type === 'ban'
+    ? `Ban @${confirmState.member.handle}? They won't be able to rejoin.`
+    : '';
 
   return (
     <ResponsiveSheet visible={visible} onClose={onClose}>
@@ -98,13 +102,13 @@ export default function MembersSheet({ visible, onClose, roomId, userId, isOwner
                     <TouchableOpacity
                       style={s.kickBtn}
                       disabled={kicking === p.userId}
-                      onPress={() => handleKick(p)}
+                      onPress={() => openKick(p)}
                     >
                       <UserMinus size={14} color={colors.textSecondary} strokeWidth={2} />
                       <Text style={s.kickLabel}>{kicking === p.userId ? '...' : 'Kick'}</Text>
                     </TouchableOpacity>
                     {!p.isGuest && (
-                      <TouchableOpacity style={s.banBtn} onPress={() => handleBan(p)}>
+                      <TouchableOpacity style={s.banBtn} onPress={() => openBan(p)}>
                         <Ban size={14} color={colors.error} strokeWidth={2} />
                         <Text style={s.banLabel}>Ban</Text>
                       </TouchableOpacity>
@@ -116,6 +120,16 @@ export default function MembersSheet({ visible, onClose, roomId, userId, isOwner
           })
         )}
       </ScrollView>
+
+      <ConfirmDialog
+        visible={confirmState !== null}
+        onClose={() => setConfirmState(null)}
+        onConfirm={handleConfirm}
+        title={confirmState?.type === 'kick' ? 'Kick member' : 'Ban member'}
+        message={confirmState?.type === 'kick' ? kickMsg : banMsg}
+        confirmLabel={confirmState?.type === 'kick' ? 'Kick' : 'Ban'}
+        danger={confirmState?.type === 'ban'}
+      />
     </ResponsiveSheet>
   );
 }

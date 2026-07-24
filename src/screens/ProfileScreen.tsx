@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Phone, Calendar, Hash, ChevronRight, LogOut, Pencil, FileText } from 'lucide-react-native';
+import { Phone, Calendar, Hash, ChevronRight, LogOut, Pencil, FileText, Trash2 } from 'lucide-react-native';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../context/AuthContext';
@@ -10,17 +10,22 @@ import ContentWrap from '../components/ContentWrap';
 import Header from '../components/Header';
 import DiceBearAvatar from '../components/DiceBearAvatar';
 import ColorPicker from '../components/ColorPicker';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { useAsyncAction } from '../hooks/useAsyncAction';
 
 export default function ProfileScreen({ navigation }: any) {
-  const { user, userId, logout } = useAuth();
+  const { user, userId, token, logout } = useAuth();
   const myRoom = useQuery(api.rooms.getMyRoom, userId ? { userId } : 'skip');
   const [handle, setHandle] = useState(user?.handle ?? '');
   const [color, setColor] = useState(user?.avatarColor ?? '#E8A840');
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showSignOut, setShowSignOut] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const updateProfile = useMutation(api.users.updateProfile);
+  const deleteAccount = useMutation(api.auth.deleteAccount);
   const { execute: doSave, loading: saving, error: saveError, reset } = useAsyncAction(updateProfile);
 
   async function handleSave() {
@@ -32,9 +37,23 @@ export default function ProfileScreen({ navigation }: any) {
     setEditing(false);
   }
 
-  async function confirmLogout() {
+  async function handleSignOut() {
+    setShowSignOut(false);
     await logout();
     navigation.getParent()?.reset({ index: 0, routes: [{ name: 'Auth' }] });
+  }
+
+  async function handleDeleteAccount() {
+    if (!userId || !token) return;
+    setDeleting(true);
+    try {
+      await deleteAccount({ userId, token });
+      await logout();
+      navigation.getParent()?.reset({ index: 0, routes: [{ name: 'Auth' }] });
+    } catch {
+      setDeleting(false);
+      setShowDelete(false);
+    }
   }
 
   return (
@@ -156,12 +175,38 @@ export default function ProfileScreen({ navigation }: any) {
         </TouchableOpacity>
 
         {/* ── Sign out ── */}
-        <TouchableOpacity style={s.signOut} onPress={confirmLogout} activeOpacity={0.7}>
+        <TouchableOpacity style={s.signOut} onPress={() => setShowSignOut(true)} activeOpacity={0.7}>
           <LogOut size={16} color={colors.error} strokeWidth={2} />
           <Text style={s.signOutText}>Sign out</Text>
         </TouchableOpacity>
+
+        {/* ── Delete Account ── */}
+        <TouchableOpacity style={s.deleteAccount} onPress={() => setShowDelete(true)} activeOpacity={0.7}>
+          <Trash2 size={14} color={colors.error} strokeWidth={2} />
+          <Text style={s.deleteAccountText}>Delete account & data</Text>
+        </TouchableOpacity>
       </ScrollView>
       </ContentWrap>
+
+      <ConfirmDialog
+        visible={showSignOut}
+        onClose={() => setShowSignOut(false)}
+        onConfirm={handleSignOut}
+        title="Sign out"
+        message="You'll need to enter your phone number again to sign back in."
+        confirmLabel="Sign out"
+      />
+
+      <ConfirmDialog
+        visible={showDelete}
+        onClose={() => { setShowDelete(false); setDeleting(false); }}
+        onConfirm={handleDeleteAccount}
+        title="Delete account"
+        message="This will permanently delete your account, messages, and all associated data. This cannot be undone."
+        confirmLabel="Delete forever"
+        danger
+        loading={deleting}
+      />
     </SafeAreaView>
   );
 }
@@ -266,4 +311,18 @@ const s = StyleSheet.create({
     borderTopColor: colors.border,
   },
   signOutText: { color: colors.error, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
+
+  // Delete account — matches RoomSettingsSheet danger zone style
+  deleteAccount: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    marginTop: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: 'rgba(244,75,66,0.2)',
+  },
+  deleteAccountText: { color: colors.error, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
 });

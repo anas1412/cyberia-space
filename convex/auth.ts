@@ -201,6 +201,70 @@ export const logout = mutation({
   },
 });
 
+// Delete account — removes all user data
+export const deleteAccount = mutation({
+  args: { userId: v.id("users"), token: v.string() },
+  handler: async (ctx, { userId, token }) => {
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found.");
+
+    // 1. Delete all sessions
+    const sessions = await ctx.db
+      .query("sessions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    for (const s of sessions) await ctx.db.delete(s._id);
+
+    // 2. Remove from all rooms (presence + decrement member count)
+    const presenceEntries = await ctx.db
+      .query("presence")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    for (const p of presenceEntries) {
+      const room = await ctx.db.get(p.roomId);
+      if (room) {
+        await ctx.db.patch(p.roomId, { memberCount: Math.max(0, room.memberCount - 1) });
+      }
+      await ctx.db.delete(p._id);
+    }
+
+    // 3. Delete all notifications
+    const notifications = await ctx.db
+      .query("notifications")
+      .withIndex("by_user_time", (q) => q.eq("userId", userId))
+      .collect();
+    for (const n of notifications) await ctx.db.delete(n._id);
+
+    // 4. Delete all room bans
+    const bans = await ctx.db
+      .query("roomBans")
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .collect();
+    for (const b of bans) await ctx.db.delete(b._id);
+
+    // 5. Delete conversations where this user is a participant
+    const conversations = await ctx.db
+      .query("conversations")
+      .collect();
+    for (const c of conversations) {
+      if (c.participantIds.includes(userId)) {
+        // Delete DMs in this conversation
+        const dms = await ctx.db
+          .query("directMessages")
+          .withIndex("by_conversation_time", (q) => q.eq("conversationId", c._id))
+          .collect();
+        for (const dm of dms) await ctx.db.delete(dm._id);
+        await ctx.db.delete(c._id);
+      }
+    }
+
+    // 6. Delete the user record
+    await ctx.db.delete(userId);
+
+    return { success: true };
+  },
+});
+
 // Cleanup orphaned guest users (run by cron every hour)
 export const cleanupGuestUsers = internalMutation({
   handler: async (ctx) => {
