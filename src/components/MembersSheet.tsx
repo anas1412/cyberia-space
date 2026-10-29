@@ -4,6 +4,7 @@ import { X, UserMinus, Ban, Crown } from 'lucide-react-native';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
+import { friendlyError } from '../lib/errors';
 import ResponsiveSheet from './ResponsiveSheet';
 import ConfirmDialog from './ConfirmDialog';
 import DiceBearAvatar from './DiceBearAvatar';
@@ -28,6 +29,7 @@ export default function MembersSheet({ visible, onClose, roomId, userId, isOwner
     type: 'kick' | 'ban';
     member: PresenceMember;
   } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   function openKick(member: PresenceMember) {
     setConfirmState({ type: 'kick', member });
@@ -41,19 +43,20 @@ export default function MembersSheet({ visible, onClose, roomId, userId, isOwner
     if (!confirmState) return;
     const { type, member } = confirmState;
 
+    setError(null);
     if (type === 'kick') {
       setKicking(member.userId);
       try {
         await kickUser({ roomId, ownerId: userId, userId: member.userId });
-      } catch (e) {
-        console.error('Kick failed:', e);
+      } catch (e: any) {
+        setError(friendlyError(e.data?.message ?? e.message));
       }
       setKicking(null);
     } else {
       try {
         await banUser({ roomId, ownerId: userId, userId: member.userId });
-      } catch (e) {
-        console.error('Ban failed:', e);
+      } catch (e: any) {
+        setError(friendlyError(e.data?.message ?? e.message));
       }
     }
     setConfirmState(null);
@@ -79,6 +82,7 @@ export default function MembersSheet({ visible, onClose, roomId, userId, isOwner
       </View>
 
       <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
+        {error ? <Text style={s.error}>{error}</Text> : null}
         {members.length === 0 ? (
           <Text style={s.empty}>No one here right now</Text>
         ) : (
@@ -149,6 +153,7 @@ const s = StyleSheet.create({
   body: { padding: spacing.xl, gap: spacing.sm, paddingBottom: spacing.xxxl * 2 },
 
   empty: { color: colors.textMuted, fontSize: fontSize.body, textAlign: 'center', paddingVertical: spacing.xxl },
+  error: { color: colors.error, fontSize: fontSize.small, textAlign: 'center', paddingBottom: spacing.sm },
 
   row: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

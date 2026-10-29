@@ -11,6 +11,7 @@ import ContentWrap from '../components/ContentWrap';
 import Header from '../components/Header';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import { friendlyError } from '../lib/errors';
 
 export default function NewRoomScreen({ navigation }: any) {
   const { userId } = useAuth();
@@ -30,7 +31,7 @@ export default function NewRoomScreen({ navigation }: any) {
     try {
       const res = await createRoom({ userId, name: name.trim(), type: roomType, topic: topic.trim() || undefined });
       navigation.replace('Room', { roomId: res.roomId, name: res.name ?? name.trim() });
-    } catch (e: any) { setError(e.message); setLoading(false); }
+    } catch (e: any) { setError(friendlyError(e.message)); setLoading(false); }
   }
 
   return (

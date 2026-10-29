@@ -42,7 +42,11 @@ export default function DMScreen({ route, navigation }: any) {
   async function handleSend() {
     if (!input.trim() || !userId) return;
     const text = input.trim(); setInput('');
-    await sendMsg({ conversationId, userId, text });
+    try {
+      await sendMsg({ conversationId, userId, text });
+    } catch {
+      setInput(text);
+    }
   }
 
   const grouped = messages.map((msg: any, i: number) => {

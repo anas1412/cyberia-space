@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { friendlyError } from '../lib/errors';
 
 type AsyncFn<TArgs extends any[], TResult> = (...args: TArgs) => Promise<TResult>;
 
@@ -36,7 +37,7 @@ export function useAsyncAction<TArgs extends any[], TResult>(
       return result;
     } catch (e: any) {
       if (mountedRef.current) {
-        setError(e.data?.message ?? e.message ?? 'Something went wrong');
+        setError(friendlyError(e.data?.message ?? e.message ?? ''));
         setLoading(false);
       }
       busyRef.current = false;

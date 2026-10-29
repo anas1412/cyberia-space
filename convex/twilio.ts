@@ -21,7 +21,7 @@ export const sendVerification = internalAction({
       console.log(`Twilio verification sent to ${phone}, status: ${verification.status}`);
     } catch (err: any) {
       console.error(`Twilio sendVerification failed for ${phone}:`, err.message);
-      throw err;
+      throw new Error("Failed to send code. Try again.");
     }
   },
 });

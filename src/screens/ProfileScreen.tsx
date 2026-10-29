@@ -11,6 +11,7 @@ import Header from '../components/Header';
 import DiceBearAvatar from '../components/DiceBearAvatar';
 import ColorPicker from '../components/ColorPicker';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { friendlyError } from '../lib/errors';
 import { useAsyncAction } from '../hooks/useAsyncAction';
 
 export default function ProfileScreen({ navigation }: any) {
@@ -23,6 +24,7 @@ export default function ProfileScreen({ navigation }: any) {
   const [showSignOut, setShowSignOut] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const updateProfile = useMutation(api.users.updateProfile);
   const deleteAccount = useMutation(api.auth.deleteAccount);
@@ -46,13 +48,14 @@ export default function ProfileScreen({ navigation }: any) {
   async function handleDeleteAccount() {
     if (!userId || !token) return;
     setDeleting(true);
+    setDeleteError(null);
     try {
       await deleteAccount({ userId, token });
       await logout();
       navigation.getParent()?.reset({ index: 0, routes: [{ name: 'Auth' }] });
-    } catch {
+    } catch (e: any) {
       setDeleting(false);
-      setShowDelete(false);
+      setDeleteError(friendlyError(e.data?.message ?? e.message));
     }
   }
 
@@ -199,10 +202,10 @@ export default function ProfileScreen({ navigation }: any) {
 
       <ConfirmDialog
         visible={showDelete}
-        onClose={() => { setShowDelete(false); setDeleting(false); }}
+        onClose={() => { setShowDelete(false); setDeleting(false); setDeleteError(null); }}
         onConfirm={handleDeleteAccount}
         title="Delete account"
-        message="This will permanently delete your account, messages, and all associated data. This cannot be undone."
+        message={deleteError ?? "This will permanently delete your account, messages, and all associated data. This cannot be undone."}
         confirmLabel="Delete forever"
         danger
         loading={deleting}

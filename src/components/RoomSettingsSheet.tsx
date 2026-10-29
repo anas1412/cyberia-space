@@ -19,6 +19,7 @@ async function copyToClipboard(text: string) {
 
 import { api } from '../../convex/_generated/api';
 import { colors, spacing, radius, fontSize, fontWeight } from '../lib/theme';
+import { friendlyError } from '../lib/errors';
 import ResponsiveSheet from './ResponsiveSheet';
 import ConfirmDialog from './ConfirmDialog';
 import Input from './Input';
@@ -49,6 +50,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
   const [showQR, setShowQR] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmRegen, setConfirmRegen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const updateRoom = useMutation(api.rooms.update);
   const deleteRoom = useMutation(api.rooms.remove);
@@ -71,10 +73,11 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
   async function handleSave() {
     if (!name.trim()) return;
     setSaving(true);
+    setError(null);
     try {
       await updateRoom({ roomId, userId, name: name.trim(), topic: topic.trim() || undefined, type: selectedType as any });
     } catch (e: any) {
-      console.error('Failed to update room:', e.message);
+      setError(friendlyError(e.data?.message ?? e.message));
     }
     setSaving(false);
   }
@@ -84,7 +87,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
       await deleteRoom({ roomId, userId });
       onDeleted?.();
     } catch (e: any) {
-      console.error('Failed to delete room:', e.message);
+      setError(friendlyError(e.data?.message ?? e.message));
     }
     setConfirmDelete(false);
   }
@@ -97,11 +100,15 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
 
   async function handleRegenerateLink() {
     setConfirmRegen(false);
-    const res = await regeneratePw({ roomId, userId });
-    const newLink = `${INVITE_BASE}/${roomId}/${res.password}`;
-    await copyToClipboard(newLink);
-    setCopiedField('link');
-    setTimeout(() => setCopiedField(null), 2000);
+    try {
+      const res = await regeneratePw({ roomId, userId });
+      const newLink = `${INVITE_BASE}/${roomId}/${res.password}`;
+      await copyToClipboard(newLink);
+      setCopiedField('link');
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch (e: any) {
+      setError(friendlyError(e.data?.message ?? e.message));
+    }
   }
 
   const inviteLink = selectedType === 'private' && password
@@ -156,6 +163,7 @@ export default function RoomSettingsSheet({ visible, onClose, onDeleted, roomId,
             ))}
           </View>
 
+          {error ? <Text style={s.error}>{error}</Text> : null}
           <Button label="Save changes" onPress={handleSave} loading={saving} loadingLabel="Saving…" disabled={!name.trim()} />
         </View>
 
@@ -319,6 +327,7 @@ const s = StyleSheet.create({
   segTextActive: { color: '#000' },
 
   empty: { color: colors.textMuted, fontSize: fontSize.body, paddingVertical: spacing.sm },
+  error: { color: colors.error, fontSize: fontSize.small, textAlign: 'center' },
 
   passwordRow: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,

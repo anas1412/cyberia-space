@@ -11,6 +11,7 @@ import Header from '../components/Header';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import DiceBearAvatar from '../components/DiceBearAvatar';
+import { friendlyError } from '../lib/errors';
 
 export default function NewDMScreen({ navigation }: any) {
   const { userId } = useAuth();
@@ -31,7 +32,7 @@ export default function NewDMScreen({ navigation }: any) {
     try {
       const convId = await getOrCreate({ userId, targetId: targetUser._id });
       navigation.replace('DM', { conversationId: convId });
-    } catch (e: any) { setError(e.message); setLoading(false); }
+    } catch (e: any) { setError(friendlyError(e.message)); setLoading(false); }
   }
 
   return (

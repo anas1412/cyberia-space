@@ -9,6 +9,7 @@ import { colors, spacing, fontSize } from '../lib/theme';
 import Loading from '../components/Loading';
 import ContentWrap from '../components/ContentWrap';
 import Header from '../components/Header';
+import { friendlyError } from '../lib/errors';
 
 export default function InviteScreen({ route, navigation }: any) {
   const { roomId, password: urlPassword } = route.params;
@@ -37,8 +38,7 @@ export default function InviteScreen({ route, navigation }: any) {
       saveLastRoom(roomId, urlPassword);
       navigation.replace('Room', { roomId, password: urlPassword });
     }).catch((e: any) => {
-      const msg = e.data?.message ?? e.message;
-      setError(msg === 'Password required' ? 'This room requires a password' : msg);
+      setError(friendlyError(e.data?.message ?? e.message));
       setCreatingGuest(false);
     });
   }, [userId, isLoading, roomId]);

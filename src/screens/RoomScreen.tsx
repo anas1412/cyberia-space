@@ -17,6 +17,7 @@ import MembersSheet from '../components/MembersSheet';
 import Loading from '../components/Loading';
 import Input from '../components/Input';
 import useRoomChat from '../hooks/useRoomChat';
+import { friendlyError } from '../lib/errors';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types/navigation';
 import type { Id } from '../../convex/_generated/dataModel';
@@ -57,7 +58,7 @@ export default function RoomScreen({ route, navigation }: Props) {
     if (!userId) return;
     setJoinError(null);
     joinRoom({ userId, roomId, password: password ?? undefined }).catch((e: any) => {
-      setJoinError(e.data?.message ?? e.message);
+      setJoinError(friendlyError(e.data?.message ?? e.message));
     });
     const interval = setInterval(() => ping({ userId, roomId }), 30000);
 
@@ -160,7 +161,7 @@ export default function RoomScreen({ route, navigation }: Props) {
                   onPress={() => {
                     setJoinError(null);
                     joinRoom({ userId, roomId, password: retryPassword.trim() }).catch((e: any) => {
-                      setJoinError(e.data?.message ?? e.message);
+                      setJoinError(friendlyError(e.data?.message ?? e.message));
                     });
                     setRetryPassword('');
                   }}
@@ -183,7 +184,11 @@ export default function RoomScreen({ route, navigation }: Props) {
   async function handleSend() {
     if (!input.trim() || !userId) return;
     const text = input.trim(); setInput('');
-    await sendMsg({ roomId, userId, text });
+    try {
+      await sendMsg({ roomId, userId, text });
+    } catch {
+      setInput(text);
+    }
   }
 
   const allOnline = [...(presence as any[])];
